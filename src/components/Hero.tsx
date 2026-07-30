@@ -68,6 +68,28 @@ export function Hero() {
 
       <div className="section-shell">
         <div className="flex flex-col items-start gap-10 sm:flex-row sm:items-center sm:gap-14">
+          <div className="reveal is-visible shrink-0">
+            <div className="relative">
+              <div
+                aria-hidden
+                className="absolute -inset-3 rounded-full bg-linear-to-tr from-accent-500/30 to-transparent blur-xl"
+              />
+              {profile.avatarUrl ? (
+                <img
+                  src={asset(profile.avatarUrl)}
+                  alt={profile.name}
+                  width={224}
+                  height={224}
+                  className="relative size-40 rounded-full object-cover ring-1 ring-ink-200 sm:size-56 dark:ring-white/15"
+                />
+              ) : (
+                <div className="relative grid size-40 place-items-center rounded-full bg-linear-to-br from-accent-500 to-accent-700 font-mono text-5xl font-semibold text-white ring-1 ring-white/20 sm:size-56 sm:text-6xl">
+                  {initials}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="reveal is-visible min-w-0 flex-1">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink-500 dark:border-white/10 dark:bg-white/5 dark:text-ink-300">
               <span className="relative flex size-2">
@@ -127,28 +149,6 @@ export function Hero() {
                   </a>
                 ))}
               </div>
-            </div>
-          </div>
-
-          <div className="reveal is-visible shrink-0">
-            <div className="relative">
-              <div
-                aria-hidden
-                className="absolute -inset-3 rounded-full bg-linear-to-tr from-accent-500/30 to-transparent blur-xl"
-              />
-              {profile.avatarUrl ? (
-                <img
-                  src={asset(profile.avatarUrl)}
-                  alt={profile.name}
-                  width={224}
-                  height={224}
-                  className="relative size-40 rounded-full object-cover ring-1 ring-ink-200 sm:size-56 dark:ring-white/15"
-                />
-              ) : (
-                <div className="relative grid size-40 place-items-center rounded-full bg-linear-to-br from-accent-500 to-accent-700 font-mono text-5xl font-semibold text-white ring-1 ring-white/20 sm:size-56 sm:text-6xl">
-                  {initials}
-                </div>
-              )}
             </div>
           </div>
         </div>

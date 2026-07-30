@@ -87,7 +87,7 @@ export const profile = {
   stats: [
     { value: '5+ Years', label: 'Data Analyst, Data Scientist and Data Engineer' },
     { value: '3+ Years', label: 'in Cloud Computing and Fullstack devs' },
-    { value: '2+', label: 'AI and Machine Learning Devs' },
+    { value: '2+ Years', label: 'AI and Machine Learning Devs' },
   ],
   /**
    * Drop your CV at public/resume.pdf and change this to '/resume.pdf' to show
@@ -184,10 +184,9 @@ export const experience: Job[] = [
 
 export const education: Education[] = [
   {
-    school: 'University Name',
-    credential: 'Degree, Field of Study',
-    period: 'YYYY — YYYY',
-    detail: 'Optional line — focus area, thesis, or honours.',
+    school: 'Padjadjaran University',
+    credential: 'Bachelor degree, Statistics',
+    period: '2012 — 2016',
   },
 ]
 
