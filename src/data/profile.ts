@@ -1,6 +1,6 @@
 /**
  * ─────────────────────────────────────────────────────────────
- *  EDIT THIS FILE — it is the only place your content lives.
+ *  EDIT THIS FILE. it is the only place your content lives.
  *  Every section of the site renders from the objects below.
  *  Nothing else needs to change to make the site yours.
  * ─────────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@
 export type Social = {
   label: string
   href: string
-  /** Icon key — see src/components/Icon.tsx for available keys. */
+  /** Icon key. see src/components/Icon.tsx for available keys. */
   icon: 'github' | 'linkedin' | 'mail' | 'x' | 'globe' | 'instagram'
 }
 
@@ -24,7 +24,13 @@ export type Job = {
   role: string
   company: string
   location?: string
-  /** Free text — e.g. "Jan 2023" */
+  /**
+   * Square company logo, from public/logos/ — e.g. "/logos/ibm.png".
+   * .png with a transparent background looks best; .jpg works too.
+   * Falls back to the company's first letter if the file is missing.
+   */
+  logo?: string
+  /** Free text. e.g. "Jan 2023" */
   start: string
   /** Use "Present" for the current role. */
   end: string
@@ -37,7 +43,7 @@ export type Project = {
   name: string
   blurb: string
   tags: string[]
-  /** Optional links — omit any you don't have. */
+  /** Optional links. omit any you don't have. */
   repo?: string
   demo?: string
   /** Optional image path, e.g. "/projects/pipeline.png" (put files in public/). */
@@ -75,14 +81,14 @@ export const profile = {
     'Business Intelligence',
   ],
   location: 'Jakarta, Indonesia',
-  /** Short pitch — hero paragraph. Keep it to 2–3 sentences. */
+  /** Short pitch. hero paragraph. Keep it to 2–3 sentences. */
   pitch:
-    'I build the pipelines and cloud platforms that move enterprise data from where it lands to where decisions get made. Nine years across oil and gas, government, telecommunications and finance — as a technical consultant, data engineer and data scientist — delivering systems that go live and stay live.',
-  /** Longer story — About section. Each string is a paragraph. */
+    'I build the pipelines and cloud platforms that move enterprise data from where it lands to where decisions get made. Nine years across oil and gas, government, telecommunications and finance. as a technical consultant, data engineer and data scientist. delivering systems that go live and stay live.',
+  /** Longer story. About section. Each string is a paragraph. */
   about: [
-    'I work at the point where data engineering meets cloud architecture. Most of my days are spent designing integration layers — pulling from DB2, SQL Server, PostgreSQL, Oracle and MySQL through DataStage, SSIS, Talend and Azure Data Factory — and making sure what comes out the other end is something an analyst or a model can actually trust.',
+    'I work at the point where data engineering meets cloud architecture. Most of my days are spent designing integration layers. pulling from DB2, SQL Server, PostgreSQL, Oracle and MySQL through DataStage, SSIS, Talend and Azure Data Factory. and making sure what comes out the other end is something an analyst or a model can actually trust.',
     'Since 2019 I have worked as a Technical Consultant at IBM Indonesia, which means I am usually embedded with a client rather than sitting behind a product. That has taken me through an oil and gas major, the Indonesian Ministry of Health, a national telecommunications operator and a finance company. The problems change, but the pattern rarely does: an on-premises estate that has outgrown itself, and a migration path to the cloud that has to happen without the reporting going dark.',
-    'I trained as a statistician at Universitas Padjadjaran, and it still shapes how I approach a problem — I would rather understand the distribution of the data than the shape of the pipeline first. That background is also where the machine learning work comes from: forecasting, interpolating missing signal, and building models that feed dashboards instead of sitting in a notebook.',
+    'I trained as a statistician at Universitas Padjadjaran, and it still shapes how I approach a problem. I would rather understand the distribution of the data than the shape of the pipeline first. That background is also where the machine learning work comes from: forecasting, interpolating missing signal, and building models that feed dashboards instead of sitting in a notebook.',
   ],
   /** Small facts shown as a strip under the hero. Keep to 3–4. */
   stats: [
@@ -95,7 +101,7 @@ export const profile = {
    * Drop your CV at public/resume.pdf and change this to '/resume.pdf' to show
    * the résumé button. null hides it.
    *
-   * NOTE: left off deliberately — public/resume.pdf carries a home address and
+   * NOTE: left off deliberately. public/resume.pdf carries a home address and
    * a personal phone number, and this site is public and indexable. Point this
    * at a redacted copy before switching it on.
    */
@@ -109,7 +115,7 @@ export const profile = {
 }
 
 export const socials: Social[] = [
-  // This one is real — it's your account.
+  // This one is real. it's your account.
   { label: 'GitHub', href: 'https://github.com/irwannafly13', icon: 'github' },
   { label: 'Email', href: `mailto:${profile.email}`, icon: 'mail' },
   // Add your real profile URL and uncomment:
@@ -198,11 +204,12 @@ export const experience: Job[] = [
   {
     role: 'Technical Consultant',
     company: 'IBM Indonesia',
+    logo: '/logos/ibm.png',
     location: 'Jakarta, Indonesia',
     start: 'Oct 2019',
     end: 'Present',
     summary:
-      'Embedded with IBM clients across oil and gas, government, telecommunications and finance — owning data integration architecture, the migration path to Azure, and the reporting layer that sits on top of it.',
+      'Embedded with IBM clients across oil and gas, government, telecommunications and finance. owning data integration architecture, the migration path to Azure, and the reporting layer that sits on top of it.',
     highlights: [
       'Designed and delivered a new integration architecture that cut ETL run time from an on-premises data lake into Azure Data Lake for an oil and gas major, spanning SSIS, SQL Server, Azure Synapse, Azure Data Factory and cloud-based SSAS.',
       'Built and maintained an API that lets on-premises SSIS jobs trigger Azure Data Factory pipelines, then hardened the connection with ExpressRoute and Azure Private Link so the call never crossed the public internet.',
@@ -210,7 +217,7 @@ export const experience: Job[] = [
       'Shipped Procurement, Domestic Gas, Human Resource, Risk Matrix and Project Progress dashboards end to end in Power BI Pro and Report Server, modelling in SSAS Tabular with Power Query and DAX.',
       'Migrated and integrated data warehouse and data lake layers for a finance client, rebuilding ETL in stored procedures, functions and shell scripts across DB2, PostgreSQL and flat-file sources into a new database environment.',
       'Reduced data availability time on automated jobs for a telecommunications operator by tuning DataStage, Talend, Hive, HDFS and shell-script workloads.',
-      'Built unstructured-data ingestion with Azure Logic Apps — capturing blob metadata for images, video, PDFs and documents, then triggering Azure Data Factory to land it in Azure SQL Database.',
+      'Built unstructured-data ingestion with Azure Logic Apps. capturing blob metadata for images, video, PDFs and documents, then triggering Azure Data Factory to land it in Azure SQL Database.',
     ],
     stack: [
       'Azure Data Factory',
@@ -230,6 +237,7 @@ export const experience: Job[] = [
   {
     role: 'Data Scientist',
     company: 'Neural Technologies Indonesia',
+    logo: '/logos/neural-technologies.png',
     location: 'Jakarta, Indonesia',
     start: 'Jan 2019',
     end: 'Oct 2019',
@@ -244,6 +252,7 @@ export const experience: Job[] = [
   {
     role: 'Database Developer',
     company: 'Tarsus Indonesia (Infrastructure Asia)',
+    logo: '/logos/tarsus.png',
     location: 'Jakarta, Indonesia',
     start: 'May 2017',
     end: 'Jan 2019',
@@ -262,7 +271,7 @@ export const education: Education[] = [
   {
     school: 'Universitas Padjadjaran',
     credential: 'Bachelor’s Degree, Statistics',
-    period: '2012 — 2016',
+    period: '2012. 2016',
   },
 ]
 
@@ -279,7 +288,7 @@ export const projects: Project[] = [
   {
     name: 'On-Premises to Azure Data Platform Migration',
     blurb:
-      'A new integration architecture for an oil and gas major, moving the ETL workload off an on-premises data lake and onto Azure. SSIS and SQL Server stayed where they were; Azure Synapse, Data Factory and cloud-based SSAS took the heavy lifting. The interesting part was the seam between them — an API that lets on-premises SSIS trigger ADF pipelines, routed over ExpressRoute and Private Link so the call never touches the public internet.',
+      'A new integration architecture for an oil and gas major, moving the ETL workload off an on-premises data lake and onto Azure. SSIS and SQL Server stayed where they were; Azure Synapse, Data Factory and cloud-based SSAS took the heavy lifting. The interesting part was the seam between them. an API that lets on-premises SSIS trigger ADF pipelines, routed over ExpressRoute and Private Link so the call never touches the public internet.',
     tags: [
       'Azure Synapse',
       'Azure Data Factory',
@@ -313,15 +322,8 @@ export const projects: Project[] = [
   {
     name: 'Unstructured Data Ingestion Pipeline',
     blurb:
-      'Azure Logic Apps that watch Blob Container and Data Lake for images, video, PDFs and documents, capture the metadata — filename, size, type, URL — and hand off to Data Factory to land it in Azure SQL Database.',
+      'Azure Logic Apps that watch Blob Container and Data Lake for images, video, PDFs and documents, capture the metadata. filename, size, type, URL. and hand off to Data Factory to land it in Azure SQL Database.',
     tags: ['Azure Logic Apps', 'Azure Blob Storage', 'Azure Data Factory'],
-  },
-  {
-    name: 'This Website',
-    blurb:
-      'A static React site that builds from one TypeScript data file and deploys itself to GitHub Pages on every push.',
-    tags: ['React', 'TypeScript', 'Tailwind', 'GitHub Actions'],
-    repo: 'https://github.com/irwannafly13/irwannafly13.github.io',
   },
 ]
 

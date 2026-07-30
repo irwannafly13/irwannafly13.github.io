@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { useActiveSection } from '../hooks/useActiveSection'
-import { profile, sections } from '../data/profile'
+import { sections } from '../data/profile'
 import type { Theme } from '../hooks/useTheme'
 
 const sectionIds = sections.map((section) => section.id)
@@ -31,12 +31,6 @@ export function Nav({ theme, onToggleTheme }: Props) {
     return () => media.removeEventListener('change', onChange)
   }, [])
 
-  const initials = profile.name
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
@@ -46,16 +40,6 @@ export function Nav({ theme, onToggleTheme }: Props) {
       }`}
     >
       <nav className="section-shell flex h-16 items-center justify-between gap-4">
-        <a
-          href="#top"
-          className="flex items-center gap-2.5 font-semibold text-ink-900 dark:text-white"
-        >
-          <span className="grid size-8 place-items-center rounded-lg bg-linear-to-br from-accent-500 to-accent-700 font-mono text-xs text-white">
-            {initials}
-          </span>
-          <span className="hidden text-sm sm:inline">{profile.name}</span>
-        </a>
-
         <div className="hidden items-center gap-1 md:flex">
           {sections.map((section) => (
             <a

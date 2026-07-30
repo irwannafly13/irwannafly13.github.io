@@ -59,7 +59,7 @@ export function Hero() {
     .join('')
 
   return (
-    <section id="top" className="relative overflow-hidden pt-28 pb-12 sm:pt-32 sm:pb-16">
+    <section id="top" className="relative overflow-hidden pt-20 pb-12 sm:pt-24 sm:pb-16">
       {/* Ambient background wash */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 size-[42rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl dark:bg-accent-500/10" />
@@ -78,17 +78,23 @@ export function Hero() {
                 <div className="relative size-40 sm:size-56">
                   <div
                     aria-hidden
-                    className="absolute inset-0 rounded-full bg-ink-100 ring-1 ring-ink-200 dark:bg-ink-900 dark:ring-white/15"
+                    className="absolute inset-0 rounded-full bg-ink-100 dark:bg-ink-900"
                   />
-                  {/* 111% tall and bottom-aligned puts the crown of the head 5% of
-                      the circle's diameter above its top edge. */}
-                  <img
-                    src={asset(profile.avatarUrl)}
-                    alt={profile.name}
-                    width={224}
-                    height={249}
-                    className="avatar-cutout absolute inset-x-0 bottom-0 h-[111%] w-full object-contain object-bottom"
-                  />
+                  {/* The mask lives on the wrapper, not the image: a transform on
+                      the image would scale its own mask along with it. The wrapper
+                      is 111% tall and bottom-aligned, which is what puts the crown
+                      of the head 5% of the diameter above the circle. */}
+                  <div className="avatar-cutout absolute inset-x-0 bottom-0 h-[111%]">
+                    <img
+                      src={asset(profile.avatarUrl)}
+                      alt={profile.name}
+                      width={224}
+                      height={249}
+                      /* Scaling about the crown of the head keeps that 5% overhang
+                         fixed while the rest of the portrait grows downward. */
+                      className="size-full origin-[50%_5.38%] scale-110 object-contain object-bottom"
+                    />
+                  </div>
                   {/* The photo fades to light grey at the hem rather than to
                       transparent, so blend that into the circle. */}
                   <div

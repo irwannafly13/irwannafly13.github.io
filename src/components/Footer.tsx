@@ -7,7 +7,6 @@ export function Footer() {
         <p>
           © {new Date().getFullYear()} {profile.name}
         </p>
-        <p className="font-mono text-xs">Built with React, Tailwind & GitHub Pages</p>
       </div>
     </footer>
   )
