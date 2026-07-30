@@ -20,15 +20,6 @@ export function Contact() {
               Placeholder closing line — say what kind of work or conversation you
               are open to. The fastest way to reach me is email.
             </p>
-
-            <a
-              href={`mailto:${profile.email}`}
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-ink-900 px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 dark:bg-white dark:text-ink-900"
-            >
-              <Icon name="mail" className="size-4" />
-              {profile.email}
-            </a>
-
             <div className="mt-8 flex items-center justify-center gap-2">
               {socials.map((social) => (
                 <a
