@@ -37,8 +37,20 @@ function useTypewriter(words: string[]) {
   return text
 }
 
+/**
+ * Full class names, not interpolated fragments — Tailwind only ships classes
+ * it can find as complete strings in the source.
+ */
+const STAT_COLUMNS: Record<number, string> = {
+  1: 'sm:grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+}
+
 export function Hero() {
   const typed = useTypewriter(profile.taglines)
+  const statColumns = STAT_COLUMNS[profile.stats.length] ?? 'sm:grid-cols-3'
 
   const initials = profile.name
     .split(' ')
@@ -141,18 +153,22 @@ export function Hero() {
           </div>
         </div>
 
-        <dl className="reveal is-visible mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-ink-200 bg-ink-200 sm:grid-cols-3 dark:border-white/10 dark:bg-white/10">
-          {profile.stats.map((stat) => (
-            <div key={stat.label} className="bg-white px-6 py-5 dark:bg-ink-950">
-              <dt className="text-xs tracking-wide text-ink-500 uppercase dark:text-ink-400">
-                {stat.label}
-              </dt>
-              <dd className="mt-1 text-2xl font-semibold text-ink-900 dark:text-white">
-                {stat.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {profile.stats.length > 0 && (
+          <dl
+            className={`reveal is-visible mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-ink-200 bg-ink-200 dark:border-white/10 dark:bg-white/10 ${statColumns}`}
+          >
+            {profile.stats.map((stat) => (
+              <div key={stat.label} className="bg-white px-6 py-5 dark:bg-ink-950">
+                <dt className="text-xs tracking-wide text-ink-500 uppercase dark:text-ink-400">
+                  {stat.label}
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-ink-900 dark:text-white">
+                  {stat.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
     </section>
   )

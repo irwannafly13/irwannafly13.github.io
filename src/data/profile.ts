@@ -83,7 +83,10 @@ export const profile = {
     'Placeholder paragraph two. Useful for background — where you came from before this role, and how that still shapes the way you work.',
     'Placeholder paragraph three. Optional: interests outside work, what you are learning, or what you would like to be hired to do next.',
   ],
-  /** Small facts shown as a strip under the hero. Keep to 3–4. */
+  /**
+   * Small facts shown as a strip under the hero. 3 is the sweet spot; 1–4 all
+   * lay out correctly. Delete the whole array to hide the strip.
+   */
   stats: [
     { value: '00+', label: 'Stat one' },
     { value: '00+', label: 'Stat two' },
@@ -94,7 +97,10 @@ export const profile = {
    * the résumé button. null hides it.
    */
   resumeUrl: null as string | null,
-  /** Path inside public/ — set to null to fall back to your initials. */
+  /**
+   * Your photo. Save it as public/avatar.jpg (square, 500x500 or larger) and
+   * change this to '/avatar.jpg'. null falls back to your initials.
+   */
   avatarUrl: null as string | null,
   email: 'you@example.com',
 }
