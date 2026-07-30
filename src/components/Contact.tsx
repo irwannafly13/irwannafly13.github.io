@@ -17,8 +17,8 @@ export function Contact() {
             </p>
             <h2 className="text-3xl sm:text-4xl">Let's build something</h2>
             <p className="mx-auto mt-4 max-w-md text-base leading-relaxed">
-              Open to data platform work, consulting and interesting problems. The
-              fastest way to reach me is email.
+              Placeholder closing line — say what kind of work or conversation you
+              are open to. The fastest way to reach me is email.
             </p>
 
             <a

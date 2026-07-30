@@ -64,30 +64,30 @@ export type Certification = {
 
 export const profile = {
   /** Used for the <title>, meta tags and the footer. */
-  name: 'Irwan Sinaga',
+  name: 'Your Name',
   /** One line under your name in the hero. */
-  role: 'Data Engineer',
+  role: 'Your Role',
   /** Rotating words in the hero headline. */
   taglines: [
-    'building reliable data pipelines',
-    'designing lakehouse architectures',
-    'turning raw events into decisions',
+    'placeholder tagline one',
+    'placeholder tagline two',
+    'placeholder tagline three',
   ],
-  location: 'Jakarta, Indonesia',
+  location: 'City, Country',
   /** Short pitch — hero paragraph. Keep it to 2–3 sentences. */
   pitch:
-    'I design and operate the data platforms that finance teams bet on — batch and streaming pipelines, lakehouse storage, and the modelling layer that makes all of it queryable. I care about correctness, cost, and pipelines that page nobody at 3am.',
+    'Placeholder pitch. Two or three sentences on what you do and what you care about — this is the first thing a visitor reads, so make it specific rather than generic.',
   /** Longer story — About section. Each string is a paragraph. */
   about: [
-    "I'm a data engineer working in financial services, where the data has to be right the first time. Most of my day is spent on ingestion, transformation and the unglamorous reliability work that keeps a platform trustworthy: schema contracts, idempotent loads, backfills that don't corrupt history.",
-    'Before specialising in data I worked closer to application development, which still shapes how I build — versioned code, tests, code review and CI for pipelines, not just for services.',
-    "Outside of work I read about distributed systems, tinker with self-hosted tooling, and slowly grow the list of side projects below.",
+    'Placeholder paragraph one. Describe the work you actually do day to day: the problems you pick up, the kind of systems you build, and what you optimise for.',
+    'Placeholder paragraph two. Useful for background — where you came from before this role, and how that still shapes the way you work.',
+    'Placeholder paragraph three. Optional: interests outside work, what you are learning, or what you would like to be hired to do next.',
   ],
   /** Small facts shown as a strip under the hero. Keep to 3–4. */
   stats: [
-    { value: '5+', label: 'Years in data' },
-    { value: '20+', label: 'Pipelines in production' },
-    { value: 'PB-scale', label: 'Lakehouse managed' },
+    { value: '00+', label: 'Stat one' },
+    { value: '00+', label: 'Stat two' },
+    { value: '00+', label: 'Stat three' },
   ],
   /**
    * Drop your CV at public/resume.pdf and change this to '/resume.pdf' to show
@@ -96,64 +96,53 @@ export const profile = {
   resumeUrl: null as string | null,
   /** Path inside public/ — set to null to fall back to your initials. */
   avatarUrl: null as string | null,
-  email: 'irwan.sinaga@bfi.co.id',
+  email: 'you@example.com',
 }
 
 export const socials: Social[] = [
+  // This one is real — it's your account.
   { label: 'GitHub', href: 'https://github.com/irwannafly13', icon: 'github' },
-  {
-    label: 'LinkedIn',
-    href: 'https://www.linkedin.com/in/irwan-sinaga',
-    icon: 'linkedin',
-  },
   { label: 'Email', href: `mailto:${profile.email}`, icon: 'mail' },
+  // Add your real profile URL and uncomment:
+  // { label: 'LinkedIn', href: 'https://www.linkedin.com/in/...', icon: 'linkedin' },
 ]
 
 /* ── Skills ───────────────────────────────────────────────── */
 
+/**
+ * Group titles and icons are yours to change; the items are placeholders.
+ * Delete a whole group to drop it from the grid.
+ */
 export const skills: SkillGroup[] = [
   {
-    title: 'Data Engineering',
+    title: 'Skill Group One',
     icon: 'database',
-    items: [
-      'Apache Spark',
-      'Apache Airflow',
-      'dbt',
-      'Kafka',
-      'Delta Lake / Iceberg',
-      'Change Data Capture',
-    ],
+    items: ['Skill', 'Skill', 'Skill', 'Skill', 'Skill'],
   },
   {
     title: 'Languages',
     icon: 'code',
-    items: ['Python', 'SQL', 'Scala', 'Bash', 'TypeScript'],
+    items: ['Skill', 'Skill', 'Skill', 'Skill'],
   },
   {
-    title: 'Storage & Warehouse',
+    title: 'Skill Group Three',
     icon: 'chart',
-    items: ['BigQuery', 'PostgreSQL', 'Oracle', 'ClickHouse', 'Redis'],
+    items: ['Skill', 'Skill', 'Skill', 'Skill'],
   },
   {
     title: 'Cloud & Platform',
     icon: 'cloud',
-    items: ['Google Cloud', 'AWS', 'Docker', 'Kubernetes', 'Terraform'],
+    items: ['Skill', 'Skill', 'Skill', 'Skill'],
   },
   {
     title: 'Tooling',
     icon: 'tools',
-    items: ['Git', 'GitHub Actions', 'Grafana', 'Great Expectations', 'Linux'],
+    items: ['Skill', 'Skill', 'Skill', 'Skill'],
   },
   {
     title: 'Ways of Working',
     icon: 'brain',
-    items: [
-      'Data modelling',
-      'Cost optimisation',
-      'Incident response',
-      'Mentoring',
-      'Stakeholder comms',
-    ],
+    items: ['Skill', 'Skill', 'Skill', 'Skill'],
   },
 ]
 
@@ -161,50 +150,50 @@ export const skills: SkillGroup[] = [
 
 export const experience: Job[] = [
   {
-    role: 'Data Engineer',
-    company: 'BFI Finance',
-    location: 'Jakarta, Indonesia',
-    start: '2023',
+    role: 'Job Title',
+    company: 'Company Name',
+    location: 'City, Country',
+    start: 'YYYY',
     end: 'Present',
     summary:
-      'Own the ingestion and transformation layer of the analytics platform serving risk, collections and finance.',
+      'One-line summary of what you owned in this role — the scope, not the task list.',
     highlights: [
-      'Migrated batch ETL onto a lakehouse architecture, cutting daily processing time roughly in half.',
-      'Built CDC pipelines from core banking systems into the warehouse with sub-hour freshness.',
-      'Introduced automated data-quality checks that catch schema drift before it reaches dashboards.',
+      'Placeholder achievement. Lead with the outcome, then how you got there.',
+      'Placeholder achievement. Put a number on it wherever you honestly can.',
+      'Placeholder achievement. Three or four per role is plenty.',
     ],
-    stack: ['Spark', 'Airflow', 'dbt', 'Kafka', 'Python', 'SQL'],
+    stack: ['Tool', 'Tool', 'Tool', 'Tool'],
   },
   {
-    role: 'Data Analyst',
-    company: 'Previous Company',
-    location: 'Jakarta, Indonesia',
-    start: '2020',
-    end: '2023',
-    summary:
-      'Built reporting and self-service models for commercial and operations teams.',
+    role: 'Previous Job Title',
+    company: 'Previous Company Name',
+    location: 'City, Country',
+    start: 'YYYY',
+    end: 'YYYY',
+    summary: 'One-line summary of this earlier role.',
     highlights: [
-      'Consolidated fragmented spreadsheets into a single governed reporting layer.',
-      'Automated recurring manual reports, freeing several analyst-days per month.',
+      'Placeholder achievement.',
+      'Placeholder achievement.',
     ],
-    stack: ['SQL', 'Python', 'Power BI', 'PostgreSQL'],
+    stack: ['Tool', 'Tool', 'Tool'],
   },
 ]
 
 export const education: Education[] = [
   {
-    school: 'Your University',
-    credential: 'B.Sc. in Computer Science',
-    period: '2016 — 2020',
-    detail: 'Focus on databases and distributed systems.',
+    school: 'University Name',
+    credential: 'Degree, Field of Study',
+    period: 'YYYY — YYYY',
+    detail: 'Optional line — focus area, thesis, or honours.',
   },
 ]
 
 export const certifications: Certification[] = [
   {
-    name: 'Professional Data Engineer',
-    issuer: 'Google Cloud',
-    year: '2024',
+    name: 'Certification Name',
+    issuer: 'Issuing Body',
+    year: 'YYYY',
+    // Add the credential URL to make the card clickable.
     href: undefined,
   },
 ]
@@ -213,33 +202,32 @@ export const certifications: Certification[] = [
 
 export const projects: Project[] = [
   {
-    name: 'Lakehouse Starter',
+    name: 'Featured Project',
     blurb:
-      'Opinionated template for a Spark + Iceberg lakehouse: medallion layout, dbt models, and Airflow DAGs wired together with a single make target.',
-    tags: ['Spark', 'Iceberg', 'dbt', 'Airflow'],
-    repo: 'https://github.com/irwannafly13',
+      'Placeholder description. What the project does, who it is for, and the one interesting technical decision behind it. The featured card spans the full width.',
+    tags: ['Tag', 'Tag', 'Tag'],
+    // repo: 'https://github.com/irwannafly13/repo-name',
+    // demo: 'https://example.com',
     featured: true,
   },
   {
-    name: 'Streaming CDC Demo',
-    blurb:
-      'End-to-end change-data-capture playground — Debezium into Kafka into a warehouse, with exactly-once semantics and a replay story.',
-    tags: ['Kafka', 'Debezium', 'Python'],
-    repo: 'https://github.com/irwannafly13',
+    name: 'Project Two',
+    blurb: 'Placeholder description. Two sentences is usually enough.',
+    tags: ['Tag', 'Tag'],
+    // repo: 'https://github.com/irwannafly13/repo-name',
   },
   {
-    name: 'Data Quality Toolkit',
-    blurb:
-      'Lightweight expectation framework that runs inside existing pipelines and posts failures straight to Slack instead of a dashboard nobody opens.',
-    tags: ['Python', 'Great Expectations', 'Slack API'],
-    repo: 'https://github.com/irwannafly13',
+    name: 'Project Three',
+    blurb: 'Placeholder description.',
+    tags: ['Tag', 'Tag'],
+    // repo: 'https://github.com/irwannafly13/repo-name',
   },
   {
     name: 'This Website',
     blurb:
       'A static React site that builds from one TypeScript data file and deploys itself to GitHub Pages on every push.',
     tags: ['React', 'TypeScript', 'Tailwind', 'GitHub Actions'],
-    repo: 'https://github.com/irwannafly13',
+    repo: 'https://github.com/irwannafly13/irwannafly13.github.io',
   },
 ]
 
