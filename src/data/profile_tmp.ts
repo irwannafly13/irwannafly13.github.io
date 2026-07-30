@@ -94,10 +94,7 @@ export const profile = {
    * the résumé button. null hides it.
    */
   resumeUrl: null as string | null,
-  /**
-   * Your photo. Save it as public/avatar.jpg (square, 500x500 or larger) and
-   * change this to '/avatar.jpg'. null falls back to your initials.
-   */
+  /** Path inside public/ — set to null to fall back to your initials. */
   avatarUrl: null as string | null,
   email: 'irwan.sinaga@hotmail.com',
 }
