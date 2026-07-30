@@ -66,12 +66,12 @@ export const profile = {
   /** Used for the <title>, meta tags and the footer. */
   name: 'Irwan',
   /** One line under your name in the hero. */
-  role: 'Fullstack cloud, data, AI engineer',
+  role: 'Fullstack',
   /** Rotating words in the hero headline. */
   taglines: [
-    'placeholder tagline one',
-    'placeholder tagline two',
-    'placeholder tagline three',
+    'Cloud Engineer',
+    'Data Engineer',
+    'AI and Machine Learning Engineer',
   ],
   location: 'Jakarta, Indonesia',
   /** Short pitch — hero paragraph. Keep it to 2–3 sentences. */
@@ -95,10 +95,10 @@ export const profile = {
    */
   resumeUrl: null as string | null,
   /**
-   * Your photo. Save it as public/avatar.jpg (square, 500x500 or larger) and
-   * change this to '/avatar.jpg'. null falls back to your initials.
+   * Your photo, from public/. Rendered as a circle at 224px (448px on retina),
+   * so square and 500x500 or larger is ideal. null falls back to your initials.
    */
-  avatarUrl: null as string | null,
+  avatarUrl: '/avatar.png' as string | null,
   email: 'irwan.sinaga@hotmail.com',
 }
 

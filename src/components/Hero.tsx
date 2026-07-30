@@ -134,7 +134,7 @@ export function Hero() {
             <div className="relative">
               <div
                 aria-hidden
-                className="absolute -inset-3 rounded-[2rem] bg-linear-to-tr from-accent-500/30 to-transparent blur-xl"
+                className="absolute -inset-3 rounded-full bg-linear-to-tr from-accent-500/30 to-transparent blur-xl"
               />
               {profile.avatarUrl ? (
                 <img
@@ -142,10 +142,10 @@ export function Hero() {
                   alt={profile.name}
                   width={224}
                   height={224}
-                  className="relative size-40 rounded-3xl object-cover ring-1 ring-ink-200 sm:size-56 dark:ring-white/15"
+                  className="relative size-40 rounded-full object-cover ring-1 ring-ink-200 sm:size-56 dark:ring-white/15"
                 />
               ) : (
-                <div className="relative grid size-40 place-items-center rounded-3xl bg-linear-to-br from-accent-500 to-accent-700 font-mono text-5xl font-semibold text-white ring-1 ring-white/20 sm:size-56 sm:text-6xl">
+                <div className="relative grid size-40 place-items-center rounded-full bg-linear-to-br from-accent-500 to-accent-700 font-mono text-5xl font-semibold text-white ring-1 ring-white/20 sm:size-56 sm:text-6xl">
                   {initials}
                 </div>
               )}
