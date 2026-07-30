@@ -87,9 +87,9 @@ export const profile = {
   /** Small facts shown as a strip under the hero. Keep to 3–4. */
   stats: [
     { value: '9+', label: 'Years in data & cloud' },
-    { value: '5', label: 'Industries delivered into' },
-    { value: '6', label: 'Dashboards shipped' },
-    { value: '3', label: 'IBM certifications' },
+    { value: '20+', label: 'Apps Deployed' },
+    { value: '40+', label: 'Dashboards shipped' },
+    { value: '10+', label: 'IBM certifications' },
   ],
   /**
    * Drop your CV at public/resume.pdf and change this to '/resume.pdf' to show
@@ -262,16 +262,14 @@ export const education: Education[] = [
   {
     school: 'Universitas Padjadjaran',
     credential: 'Bachelor’s Degree, Statistics',
-    period: '2012 — 2017',
-    detail:
-      'Bandung, Indonesia. Vice Chairman of Statistika Bulutangkis (STATIS) and active member of Himpunan Mahasiswa Statistika and IHMSI.',
+    period: '2012 — 2016',
   },
 ]
 
 export const certifications: Certification[] = [
-  { name: 'IBM DB2 SQL V12', issuer: 'IBM', year: '2021' },
-  { name: 'IBM DataOps Manifesto', issuer: 'IBM', year: '2020' },
-  { name: 'IBM Big Data 101', issuer: 'IBM', year: '2020' },
+  { name: 'IBM Big Data 101', issuer: 'IBM', year: '2021' },
+  { name: 'Microsoft PowerBI', issuer: 'IBM', year: '2022' },
+  { name: 'Alibaba Cloud Data Engineer', issuer: 'Alibaba CLoud', year: '2024' },
 ]
 
 /* ── Portfolio ────────────────────────────────────────────── */

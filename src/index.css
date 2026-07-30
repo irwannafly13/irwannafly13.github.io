@@ -69,6 +69,30 @@
   @apply rounded-2xl border border-ink-200 bg-white/70 dark:border-white/10 dark:bg-white/[0.03];
 }
 
+/*
+ * Crops a portrait to a circle while letting the head break out over its top
+ * edge. Assumes the image box is 111% of the circle's diameter D and
+ * bottom-aligned, which puts the circle's centre at 54.95% of the box height
+ * and its radius, D/2, at exactly closest-side.
+ *
+ * Two mask layers, unioned (mask-composite defaults to add): the circle, plus
+ * a band covering everything above the circle's centre line. The band has to
+ * reach the centre and not merely the apex — anywhere higher the circle is
+ * narrower than the head, and the union notches a slice out of the hair. At
+ * the centre the circle spans the full box width, so the two layers meet
+ * seamlessly. Nothing spills out of the sides up there because the source
+ * PNG's background is transparent.
+ */
+@utility avatar-cutout {
+  --avatar-mask:
+    radial-gradient(circle closest-side at 50% 54.95%, #000 99%, transparent 100%),
+    linear-gradient(to bottom, #000 54.95%, transparent 54.95%);
+  -webkit-mask-image: var(--avatar-mask);
+  mask-image: var(--avatar-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 /* Scroll reveal: hidden until the observer adds .is-visible. */
 .reveal {
   opacity: 0;

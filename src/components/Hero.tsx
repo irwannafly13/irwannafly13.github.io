@@ -75,13 +75,27 @@ export function Hero() {
                 className="absolute -inset-3 rounded-full bg-linear-to-tr from-accent-500/30 to-transparent blur-xl"
               />
               {profile.avatarUrl ? (
-                <img
-                  src={asset(profile.avatarUrl)}
-                  alt={profile.name}
-                  width={224}
-                  height={224}
-                  className="relative size-40 rounded-full object-cover ring-1 ring-ink-200 sm:size-56 dark:ring-white/15"
-                />
+                <div className="relative size-40 sm:size-56">
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 rounded-full bg-ink-100 ring-1 ring-ink-200 dark:bg-ink-900 dark:ring-white/15"
+                  />
+                  {/* 111% tall and bottom-aligned puts the crown of the head 5% of
+                      the circle's diameter above its top edge. */}
+                  <img
+                    src={asset(profile.avatarUrl)}
+                    alt={profile.name}
+                    width={224}
+                    height={249}
+                    className="avatar-cutout absolute inset-x-0 bottom-0 h-[111%] w-full object-contain object-bottom"
+                  />
+                  {/* The photo fades to light grey at the hem rather than to
+                      transparent, so blend that into the circle. */}
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 rounded-full bg-linear-to-t from-ink-100 from-10% to-transparent to-45% dark:from-ink-900"
+                  />
+                </div>
               ) : (
                 <div className="relative grid size-40 place-items-center rounded-full bg-linear-to-br from-accent-500 to-accent-700 font-mono text-5xl font-semibold text-white ring-1 ring-white/20 sm:size-56 sm:text-6xl">
                   {initials}
