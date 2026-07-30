@@ -22,7 +22,7 @@ function CompanyLogo({ job }: { job: Job }) {
           alt=""
           loading="lazy"
           onError={() => setFailed(true)}
-          className="size-full object-contain p-1.5"
+          className="size-full object-contain"
         />
       ) : (
         <span className="text-xl font-semibold text-ink-400">

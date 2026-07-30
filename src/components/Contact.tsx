@@ -1,9 +1,10 @@
 import { Icon } from './Icon'
-import { profile, socials } from '../data/profile'
+import { socials } from '../data/profile'
 
 export function Contact() {
+  // Not a <Section>, so it carries its own padding — keep it in step.
   return (
-    <section id="contact" className="scroll-mt-24 py-20 sm:py-24">
+    <section id="contact" className="scroll-mt-24 py-12 sm:py-16">
       <div className="section-shell">
         <div className="reveal card relative overflow-hidden px-6 py-14 text-center sm:px-12">
           <div

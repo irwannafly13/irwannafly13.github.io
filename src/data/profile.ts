@@ -204,7 +204,7 @@ export const experience: Job[] = [
   {
     role: 'Technical Consultant',
     company: 'IBM Indonesia',
-    logo: '/logos/ibm.png',
+    logo: '/logos/ibm.svg',
     location: 'Jakarta, Indonesia',
     start: 'Oct 2019',
     end: 'Present',
