@@ -76,7 +76,7 @@ export const profile = {
   location: 'Jakarta, Indonesia',
   /** Short pitch — hero paragraph. Keep it to 2–3 sentences. */
   pitch:
-    'I have more than nine years of professional experience in data, machine learning, and data engineering. Throughout my career, I have worked with five different companies, delivering successful projects for a diverse range of clients across various industries. With extensive hands-on experience managing end-to-end data initiatives, I am committed to maintaining high standards of quality in every project. I ensure that every deliverable is thoroughly reviewed, technically sound, and meets both client expectations and organizational quality standards.',
+    'I have over 9 years of experience in data, machine learning, and data engineering. Throughout my career, I have worked with five companies and delivered projects for clients across various industries. I am committed to delivering high-quality work and ensuring every project meets professional standards.',
   /** Longer story — About section. Each string is a paragraph. */
   about: [
     'Placeholder paragraph one. Describe the work you actually do day to day: the problems you pick up, the kind of systems you build, and what you optimise for.',
