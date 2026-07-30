@@ -268,6 +268,7 @@ export const education: Education[] = [
 
 export const certifications: Certification[] = [
   { name: 'IBM Big Data 101', issuer: 'IBM', year: '2021' },
+  { name: 'IBM DataOps', issuer: 'IBM', year: '2021' },
   { name: 'Microsoft PowerBI', issuer: 'IBM', year: '2022' },
   { name: 'Alibaba Cloud Data Engineer', issuer: 'Alibaba CLoud', year: '2024' },
 ]

@@ -59,7 +59,7 @@ export function Hero() {
     .join('')
 
   return (
-    <section id="top" className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-24">
+    <section id="top" className="relative overflow-hidden pt-28 pb-12 sm:pt-32 sm:pb-16">
       {/* Ambient background wash */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 size-[42rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl dark:bg-accent-500/10" />
@@ -169,7 +169,7 @@ export function Hero() {
 
         {profile.stats.length > 0 && (
           <dl
-            className={`reveal is-visible mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-ink-200 bg-ink-200 dark:border-white/10 dark:bg-white/10 ${statColumns}`}
+            className={`reveal is-visible mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-ink-200 bg-ink-200 dark:border-white/10 dark:bg-white/10 ${statColumns}`}
           >
             {profile.stats.map((stat) => (
               <div key={stat.label} className="bg-white px-6 py-5 dark:bg-ink-950">
