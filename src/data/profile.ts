@@ -100,7 +100,7 @@ export const profile = {
 }
 
 export const socials: Social[] = [
-  { label: 'GitHub', href: 'https://github.com/irwannafly', icon: 'github' },
+  { label: 'GitHub', href: 'https://github.com/irwannafly13', icon: 'github' },
   {
     label: 'LinkedIn',
     href: 'https://www.linkedin.com/in/irwan-sinaga',
@@ -217,7 +217,7 @@ export const projects: Project[] = [
     blurb:
       'Opinionated template for a Spark + Iceberg lakehouse: medallion layout, dbt models, and Airflow DAGs wired together with a single make target.',
     tags: ['Spark', 'Iceberg', 'dbt', 'Airflow'],
-    repo: 'https://github.com/irwannafly',
+    repo: 'https://github.com/irwannafly13',
     featured: true,
   },
   {
@@ -225,21 +225,21 @@ export const projects: Project[] = [
     blurb:
       'End-to-end change-data-capture playground — Debezium into Kafka into a warehouse, with exactly-once semantics and a replay story.',
     tags: ['Kafka', 'Debezium', 'Python'],
-    repo: 'https://github.com/irwannafly',
+    repo: 'https://github.com/irwannafly13',
   },
   {
     name: 'Data Quality Toolkit',
     blurb:
       'Lightweight expectation framework that runs inside existing pipelines and posts failures straight to Slack instead of a dashboard nobody opens.',
     tags: ['Python', 'Great Expectations', 'Slack API'],
-    repo: 'https://github.com/irwannafly',
+    repo: 'https://github.com/irwannafly13',
   },
   {
     name: 'This Website',
     blurb:
       'A static React site that builds from one TypeScript data file and deploys itself to GitHub Pages on every push.',
     tags: ['React', 'TypeScript', 'Tailwind', 'GitHub Actions'],
-    repo: 'https://github.com/irwannafly',
+    repo: 'https://github.com/irwannafly13',
   },
 ]
 
