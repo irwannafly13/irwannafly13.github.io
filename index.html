@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <!-- EDIT: keep these in sync with src/data/profile.ts -->
+    <title>Irwan Sinaga — Data Engineer</title>
+    <meta
+      name="description"
+      content="Data engineer building reliable pipelines and lakehouse platforms. Skills, experience and portfolio."
+    />
+    <meta name="author" content="Irwan Sinaga" />
+    <meta name="theme-color" content="#0e1015" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Irwan Sinaga — Data Engineer" />
+    <meta
+      property="og:description"
+      content="Data engineer building reliable pipelines and lakehouse platforms. Skills, experience and portfolio."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Set the theme before first paint so there is no light-mode flash. -->
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('theme')
+          var dark =
+            stored === 'dark' ||
+            (!stored && matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', dark)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
