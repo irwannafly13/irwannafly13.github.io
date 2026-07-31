@@ -122,7 +122,7 @@ export function Hero() {
               Open to opportunities · {profile.location}
             </p>
 
-            <h1 className="text-4xl leading-[1.1] sm:text-5xl lg:text-6xl">
+            <h1 className="text-center text-4xl leading-[1.1] sm:text-left sm:text-5xl lg:text-6xl">
               {profile.name}
             </h1>
 
