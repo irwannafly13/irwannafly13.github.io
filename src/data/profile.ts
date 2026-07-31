@@ -91,7 +91,7 @@ export const profile = {
     { value: '9+', label: 'Years in data & cloud' },
     { value: '20+', label: 'Apps Deployed' },
     { value: '40+', label: 'Dashboards shipped' },
-    { value: '10+', label: 'IBM certifications' },
+    { value: '10+', label: 'Model Developed' },
   ],
   /**
    * Drop your CV at public/resume.pdf and change this to '/resume.pdf' to show
@@ -134,19 +134,24 @@ export const skills: SkillGroup[] = [
     title: 'Data Engineering',
     icon: 'database',
     items: [
+      'Python',
+      'Airflow',
       'IBM DataStage',
       'SSIS',
       'Talend',
+      'Pentaho',
       'Azure Data Factory',
       'Stored Procedures',
       'Shell Scripting',
-      'ETL / ELT design',
     ],
   },
   {
     title: 'Databases',
     icon: 'tools',
     items: [
+      'Trino',
+      'Presto',
+      'BigQuery',
       'IBM DB2',
       'SQL Server',
       'PostgreSQL',
@@ -154,6 +159,11 @@ export const skills: SkillGroup[] = [
       'MySQL',
       'Azure SQL Database',
       'Hive / HDFS',
+      'Duckdb',
+      'Hologres',
+      'Greenplum',
+      'MaxCompute',
+      'Vectordb',
     ],
   },
   {
@@ -183,7 +193,7 @@ export const skills: SkillGroup[] = [
   {
     title: 'Languages',
     icon: 'code',
-    items: ['SQL', 'Python', 'R', 'Bash'],
+    items: ['Python', 'R', 'Javascript', 'SQL'],
   },
   {
     title: 'Data Science & ML',
@@ -203,12 +213,40 @@ export const skills: SkillGroup[] = [
 
 export const experience: Job[] = [
   {
+    role: 'Data Center Sub Section Head',
+    company: 'Wings Group',
+    logo: '/logos/wings.svg',
+    location: 'Jakarta, Indonesia',
+    start: 'Jan 2023',
+    end: 'Jun 2023',
+    summary:
+      'Led the maintenance and enhancement of the enterprise Big Data platform and developed datamarts to support business intelligence and data-driven decision-making.',
+
+    highlights: [
+      'Managed and maintained the Greenplum Big Data platform, ensuring high availability and performance for stakeholders across Wings Group.',
+      'Designed and developed business intelligence datamarts using multiple database technologies.',
+      'Supervised and mentored Data Engineers within the Data Center team.',
+      'Optimized Big Data pipelines to improve processing efficiency, reduce execution time, and increase system reliability.',
+      'Collaborated with cross-functional teams to support enterprise data initiatives and analytics projects.',
+      'Prepared and presented regular operational and project reports to the Data Center Manager and IT Manager.'
+    ],
+
+    stack: [
+      'Big Data',
+      'Greenplum',
+      'PostgreSQL',
+      'MicroStrategy',
+      'Bash',
+      'Machine Learning'
+    ]
+  },
+  {
     role: 'Technical Consultant',
     company: 'IBM Indonesia',
     logo: '/logos/ibm.svg',
     location: 'Jakarta, Indonesia',
     start: 'Oct 2019',
-    end: 'Present',
+    end: 'Dec 2022',
     summary:
       'Embedded with IBM clients across oil and gas, government, telecommunications and finance. owning data integration architecture, the migration path to Azure, and the reporting layer that sits on top of it.',
     highlights: [
