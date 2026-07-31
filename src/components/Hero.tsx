@@ -86,7 +86,8 @@ export function Hero() {
                       of the head 5% of the diameter above the circle. */}
                   <div className="avatar-cutout absolute inset-x-0 bottom-0 h-[111%]">
                     <img
-                      src={asset(profile.avatarUrl)}
+                      /* Already a built URL, base path included. Don't re-resolve. */
+                      src={profile.avatarUrl}
                       alt={profile.name}
                       width={224}
                       height={249}

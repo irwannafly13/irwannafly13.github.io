@@ -6,6 +6,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import avatar from '../assets/avatar.png'
+
 export type Social = {
   label: string
   href: string
@@ -101,10 +103,15 @@ export const profile = {
    */
   resumeUrl: null as string | null,
   /**
-   * Your photo, from public/. Rendered as a circle at 224px (448px on retina),
-   * so square and 500x500 or larger is ideal. null falls back to your initials.
+   * Your photo, at src/assets/avatar.png. Rendered as a circle at 224px (448px
+   * on retina), so square and 500x500 or larger is ideal. null falls back to
+   * your initials.
+   *
+   * Overwrite that file to change the photo. It is imported rather than served
+   * from public/ so the build fingerprints it — a new image gets a new URL, and
+   * a browser or CDN can never hand back the old one.
    */
-  avatarUrl: '/avatar.png' as string | null,
+  avatarUrl: avatar as string | null,
   email: 'irwan.sinaga@hotmail.com',
 }
 
