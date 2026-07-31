@@ -6,7 +6,7 @@ export function Skills() {
   return (
     <Section
       id="skills"
-      eyebrow="02 — Skills"
+      eyebrow="01 — Skills"
       title="What I work with"
       intro="The tools I reach for most often, grouped by where they sit in the stack."
     >

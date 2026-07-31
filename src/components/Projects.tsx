@@ -12,7 +12,7 @@ export function Projects() {
   return (
     <Section
       id="projects"
-      eyebrow="04 — Portfolio"
+      eyebrow="03 — Portfolio"
       title="Things I've built"
       intro="Side projects and work I can talk about publicly."
     >

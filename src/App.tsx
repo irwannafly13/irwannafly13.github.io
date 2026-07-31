@@ -1,6 +1,5 @@
 import { Nav } from './components/Nav'
 import { Hero } from './components/Hero'
-import { About } from './components/About'
 import { Skills } from './components/Skills'
 import { Experience } from './components/Experience'
 import { Projects } from './components/Projects'
@@ -16,7 +15,7 @@ export default function App() {
   return (
     <>
       <a
-        href="#about"
+        href="#skills"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-100 focus:rounded-lg focus:bg-ink-900 focus:px-4 focus:py-2 focus:text-sm focus:text-white dark:focus:bg-white dark:focus:text-ink-900"
       >
         Skip to content
@@ -26,7 +25,6 @@ export default function App() {
 
       <main>
         <Hero />
-        <About />
         <Skills />
         <Experience />
         <Projects />

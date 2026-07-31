@@ -37,7 +37,7 @@ export function Experience() {
   return (
     <Section
       id="experience"
-      eyebrow="03 — Experience"
+      eyebrow="02 — Experience"
       title="Where I've worked"
       intro="Roles in reverse-chronological order, with the work I'm proudest of in each."
     >

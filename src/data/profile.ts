@@ -84,12 +84,6 @@ export const profile = {
   /** Short pitch. hero paragraph. Keep it to 2–3 sentences. */
   pitch:
     'I build the pipelines and cloud platforms that move enterprise data from where it lands to where decisions get made. Nine years across oil and gas, government, telecommunications and finance. as a technical consultant, data engineer and data scientist. delivering systems that go live and stay live.',
-  /** Longer story. About section. Each string is a paragraph. */
-  about: [
-    'I work at the point where data engineering meets cloud architecture. Most of my days are spent designing integration layers. pulling from DB2, SQL Server, PostgreSQL, Oracle and MySQL through DataStage, SSIS, Talend and Azure Data Factory. and making sure what comes out the other end is something an analyst or a model can actually trust.',
-    'Since 2019 I have worked as a Technical Consultant at IBM Indonesia, which means I am usually embedded with a client rather than sitting behind a product. That has taken me through an oil and gas major, the Indonesian Ministry of Health, a national telecommunications operator and a finance company. The problems change, but the pattern rarely does: an on-premises estate that has outgrown itself, and a migration path to the cloud that has to happen without the reporting going dark.',
-    'I trained as a statistician at Universitas Padjadjaran, and it still shapes how I approach a problem. I would rather understand the distribution of the data than the shape of the pipeline first. That background is also where the machine learning work comes from: forecasting, interpolating missing signal, and building models that feed dashboards instead of sitting in a notebook.',
-  ],
   /** Small facts shown as a strip under the hero. Keep to 3–4. */
   stats: [
     { value: '9+', label: 'Years in data & cloud' },
@@ -330,7 +324,6 @@ export const projects: Project[] = [
 /* ── Navigation ───────────────────────────────────────────── */
 
 export const sections = [
-  { id: 'about', label: 'About' },
   { id: 'skills', label: 'Skills' },
   { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Portfolio' },
