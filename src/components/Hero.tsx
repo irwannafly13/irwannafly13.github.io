@@ -68,7 +68,9 @@ export function Hero() {
 
       <div className="section-shell">
         <div className="flex flex-col items-start gap-10 sm:flex-row sm:items-center sm:gap-14">
-          <div className="reveal is-visible shrink-0">
+          {/* Centred while the column is stacked; from sm up the row's own
+              alignment takes over. */}
+          <div className="reveal is-visible shrink-0 self-center sm:self-auto">
             <div className="relative">
               <div
                 aria-hidden
