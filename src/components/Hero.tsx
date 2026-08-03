@@ -123,7 +123,7 @@ export function Hero() {
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               </span>
-              Open to opportunities · {profile.location}
+              {profile.location}
             </p>
 
             <h1 className="text-center text-4xl leading-[1.1] sm:text-left sm:text-5xl lg:text-6xl">

@@ -418,6 +418,7 @@ export const projects: Project[] = [
   {
     name: 'On-Premises to Azure Data Platform Migration',
     category: 'Data Platform',
+    docs: ['/projects/azure/azure1.png'],
     blurb:
       'A new integration architecture for an oil and gas major, moving the ETL workload off an on-premises data lake and onto Azure. SSIS and SQL Server stayed where they were; Azure Synapse, Data Factory and cloud-based SSAS took the heavy lifting. The interesting part was the seam between them. an API that lets on-premises SSIS trigger ADF pipelines, routed over ExpressRoute and Private Link so the call never touches the public internet.',
     tags: [
@@ -431,6 +432,8 @@ export const projects: Project[] = [
   },
   {
     name: 'inomaly',
+    category: 'Machine Learning',
+    docs: ['/projects/inomaly/inomaly.png'],
     blurb:
       'An R package for anomaly detection, published as a personal project and installable straight from the repo.',
     tags: ['R', 'Anomaly Detection', 'Package'],
@@ -438,19 +441,24 @@ export const projects: Project[] = [
   },
   {
     name: 'Association Rule Mining in R',
-    blurb:
-      'Correlation and association-rule mining over transactional data, written up as a worked example in R.',
+    category: 'Machine Learning',
+    docs: ['/projects/arule/arule.png'],
+    blurb: 'Correlation and association-rule mining over transactional data, written up as a worked example in R.',
     tags: ['R', 'Data Mining', 'Association Rules'],
-    repo: 'https://github.com/irwannafly/arule-mining-using-r',
+    repo: 'https://irwannafly.blogspot.com/2019/01/how-to-know-customer-needs-from.html',
   },
   {
     name: 'Covid-19 Corporate Command Center',
+    category: 'Analytics & BI',
+    docs: ['/projects/covid/covid.jpg'],
     blurb:
       'A national situation dashboard built with the Indonesian Ministry of Health. Data was shaped in DB2 through stored procedures and DataStage, then surfaced in Tableau for daily operational reporting.',
     tags: ['Tableau', 'DB2', 'IBM DataStage', 'Public Sector'],
   },
   {
     name: 'Unstructured Data Ingestion Pipeline',
+    category: 'Data Platform',
+    docs: ['/projects/azure/azure2.jpg'],
     blurb:
       'Azure Logic Apps that watch Blob Container and Data Lake for images, video, PDFs and documents, capture the metadata. filename, size, type, URL. and hand off to Data Factory to land it in Azure SQL Database.',
     tags: ['Azure Logic Apps', 'Azure Blob Storage', 'Azure Data Factory'],

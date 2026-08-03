@@ -33,7 +33,9 @@ function ProjectCard({
     setIndex((i) => (i + delta + shots.length) % shots.length)
 
   return (
-    <article className="card reveal group relative aspect-[4/3] overflow-hidden transition-all hover:-translate-y-1 hover:border-accent-400/60 dark:hover:border-accent-400/40">
+    /* Fixed height, not an aspect ratio: every card is identical whatever the
+       shot's dimensions are, and it no longer changes with column width. */
+    <article className="card reveal group relative h-80 overflow-hidden transition-all hover:-translate-y-1 hover:border-accent-400/60 dark:hover:border-accent-400/40">
       {shots.length > 0 ? (
         <button
           type="button"
@@ -149,7 +151,6 @@ export function Projects() {
       id="projects"
       eyebrow="03 — Portfolio"
       title="Things I've built"
-      intro="Side projects and work I can talk about publicly. Open one to read the detail and page through its documentation."
     >
       {/* Horizontal scroll rather than wrapping, so the row stays one line on
           a phone however many groups end up here. */}
