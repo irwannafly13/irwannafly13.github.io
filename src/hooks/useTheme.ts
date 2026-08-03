@@ -4,10 +4,9 @@ export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'theme'
 
+/** Dark is the default. Only an explicit choice of light opts out of it. */
 function preferredTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return localStorage.getItem(STORAGE_KEY) === 'light' ? 'light' : 'dark'
 }
 
 /**
@@ -25,16 +24,6 @@ export function useTheme() {
     document.documentElement.style.colorScheme = theme
     localStorage.setItem(STORAGE_KEY, theme)
   }, [theme])
-
-  // Follow the OS only while the user hasn't picked a theme themselves.
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = (event: MediaQueryListEvent) => {
-      if (!localStorage.getItem(STORAGE_KEY)) setTheme(event.matches ? 'dark' : 'light')
-    }
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-  }, [])
 
   const toggle = useCallback(() => {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'))

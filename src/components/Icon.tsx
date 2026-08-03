@@ -18,6 +18,10 @@ type IconName =
   | 'menu'
   | 'close'
   | 'pin'
+  | 'chevron-down'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'image'
 
 type Props = {
   name: IconName
@@ -57,6 +61,11 @@ const stroked: Partial<Record<IconName, string>> = {
   menu: 'M4 7h16M4 12h16M4 17h16',
   close: 'm6 6 12 12M18 6 6 18',
   pin: 'm12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8L12 3Z',
+  'chevron-down': 'm6 9 6 6 6-6',
+  'chevron-left': 'm15 6-6 6 6 6',
+  'chevron-right': 'm9 6 6 6-6 6',
+  image:
+    'M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Zm0 10 4.5-4.5 5 5M13.5 14l3-3L20 14.5M15.5 8.5h.01',
 }
 
 export function Icon({ name, className = 'size-5' }: Props) {

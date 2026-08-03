@@ -48,8 +48,19 @@ export type Project = {
   /** Optional links. omit any you don't have. */
   repo?: string
   demo?: string
-  /** Optional image path, e.g. "/projects/pipeline.png" (put files in public/). */
-  image?: string
+  /**
+   * Documentation screenshots for the panel on the left of the card, paged
+   * with the arrows. Put the files in public/projects/ and list them here,
+   * e.g. ['/projects/pipeline-1.png', '/projects/pipeline-2.png'].
+   * Omit it and the panel shows a placeholder until you add one.
+   */
+  docs?: string[]
+  /**
+   * Which group button this project sits under. Must match one of the labels
+   * in `projectCategories`. Leave it off and the project only shows under
+   * "All".
+   */
+  category?: string
   /** Pins the card to the top of the grid. */
   featured?: boolean
 }
@@ -141,7 +152,7 @@ export const skills: SkillGroup[] = [
       'Talend',
       'Pentaho',
       'Azure Data Factory',
-      'Stored Procedures',
+      'Stored Procedures', 'Databricks',
       'Shell Scripting',
     ],
   },
@@ -176,36 +187,85 @@ export const skills: SkillGroup[] = [
       'Azure Logic Apps',
       'Azure Blob Storage',
       'ExpressRoute / Private Link',
+      'Alibaba E-MapReduce Datalake and Kafka',
+      'Alibaba VPC Network',
+      'Alibaba RDS',
+      'Alibaba Model Studio',
+      'Alibaba OSS',
+      'Alibaba Kubernetes',
+      'Alibaba Cloud firewall, WAF, Load Balancers',
+      'Alibaba API gateway',
+      'Alibaba Hologres',
+      'Alibaba MaxCompute',
+      'ALibaba ElasticSearch',
+      'Alibaba OpenAPI',
+      'Alibaba automation, Cloud Monitor, Action Trail', 'Alibaba ECS',
+      'AWS ECS', 'AWS EMR', 'AWS container service', 'AWS API gateway'
+    ],
+  },
+  {
+    title: 'DevOps / SRE',
+    icon: 'chart',
+    items: [
+      'GitOps',
+      'CI/CD', 'FinOps',
+      'IaC', 'Pagerduty', 'APM', 'OPM',
+      'KeyVault',
+      'ArgoCD',
+      'Kubernetes',
+      'Atlantis',
+      'Grafana',
+      'Jira',
+      'Confluence',
+      'Elastic', 'Alibaba EAS', 'RBAC', 'OAUTH',
     ],
   },
   {
     title: 'Business Intelligence',
     icon: 'chart',
     items: [
-      'Power BI Pro',
-      'Power BI Report Server',
+      'Power BI',
       'Tableau',
-      'SSAS Tabular',
       'Power Query',
       'DAX',
+      'Streamlit',
+      'flask',
+      'MicroStrategy',
+      'Looker', 'RLS',
     ],
   },
   {
     title: 'Languages',
     icon: 'code',
-    items: ['Python', 'R', 'Javascript', 'SQL'],
+    items: ['Python', 'R', 'JavaScript', 'SQL', 'DAX', 'Rush', 'Bash', 'TypeScript'],
   },
   {
-    title: 'Data Science & ML',
+    title: 'Data Science & Machine Learning',
     icon: 'brain',
     items: [
-      'Forecasting',
+      'Forecasting', 'Scoring',
+      'Deep Learning',
+      'OCR',
       'Interpolation & imputation',
       'Anomaly detection',
-      'Azure ML Studio',
-      'R-Studio',
       'Statistical modelling',
     ],
+  },
+  {
+    title: 'Artificial Inteligence (AI)',
+    icon: 'brain',
+    items: [
+      'AI agents using Dify',
+      'Alibaba Cloud AI studio inference model',
+      'feast', 'BI Chat platform', 'API key Proxy to handle limit and reduce cost'
+    ],
+  },
+  {
+    title: 'Fullstack Developer',
+    icon: 'brain',
+    items: [
+      'Frontend: VanillaJS, react, angularJS',
+      'Backend: Flask, Django'],
   },
 ]
 
@@ -323,9 +383,26 @@ export const certifications: Certification[] = [
 
 /* ── Portfolio ────────────────────────────────────────────── */
 
+/**
+ * The group buttons above the portfolio grid. "All" is added automatically and
+ * always comes first, so don't list it here.
+ *
+ * DUMMY: these are placeholders. Rename them to whatever you actually want to
+ * group by, then set a matching `category` on each project below. Until you do,
+ * every group except "All" will read as empty.
+ */
+export const projectCategories = [
+  'Data Platform',
+  'Analytics & BI',
+  'Machine Learning',
+  'Open Source',
+] as const
+
 export const projects: Project[] = [
   {
-    name: 'On-Premises to Azure Data Platform Migration',
+    name: 'Design and Implement Big Data Platform in the cloud native',
+    category: 'Data Platform',
+    docs: ['/projects/datalake/dl1.png', '/projects/datalake/dl2.png'],
     blurb:
       'A new integration architecture for an oil and gas major, moving the ETL workload off an on-premises data lake and onto Azure. SSIS and SQL Server stayed where they were; Azure Synapse, Data Factory and cloud-based SSAS took the heavy lifting. The interesting part was the seam between them. an API that lets on-premises SSIS trigger ADF pipelines, routed over ExpressRoute and Private Link so the call never touches the public internet.',
     tags: [
@@ -336,7 +413,21 @@ export const projects: Project[] = [
       'ExpressRoute',
       'Private Link',
     ],
-    featured: true,
+  },
+
+  {
+    name: 'On-Premises to Azure Data Platform Migration',
+    category: 'Data Platform',
+    blurb:
+      'A new integration architecture for an oil and gas major, moving the ETL workload off an on-premises data lake and onto Azure. SSIS and SQL Server stayed where they were; Azure Synapse, Data Factory and cloud-based SSAS took the heavy lifting. The interesting part was the seam between them. an API that lets on-premises SSIS trigger ADF pipelines, routed over ExpressRoute and Private Link so the call never touches the public internet.',
+    tags: [
+      'Azure Synapse',
+      'Azure Data Factory',
+      'SSIS',
+      'SSAS',
+      'ExpressRoute',
+      'Private Link',
+    ],
   },
   {
     name: 'inomaly',

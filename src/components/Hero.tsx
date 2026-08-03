@@ -59,7 +59,7 @@ export function Hero() {
     .join('')
 
   return (
-    <section id="top" className="relative overflow-hidden pt-20 pb-12 sm:pt-24 sm:pb-16">
+    <section id="top" className="relative overflow-hidden pt-20 pb-4 sm:pt-24 sm:pb-6">
       {/* Ambient background wash */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 size-[42rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl dark:bg-accent-500/10" />
@@ -80,7 +80,7 @@ export function Hero() {
                 <div className="relative size-40 sm:size-56">
                   <div
                     aria-hidden
-                    className="absolute inset-0 rounded-full bg-ink-100 dark:bg-ink-900"
+                    className="absolute inset-0 rounded-full bg-ink-950"
                   />
                   {/* The mask lives on the wrapper, not the image: a transform on
                       the image would scale its own mask along with it. The wrapper
@@ -98,11 +98,15 @@ export function Hero() {
                       className="size-full origin-[50%_5.38%] scale-110 object-contain object-bottom"
                     />
                   </div>
-                  {/* The photo fades to light grey at the hem rather than to
-                      transparent, so blend that into the circle. */}
+                  {/* The photo fades to near-black (#0d0f12) at the hem rather
+                      than to transparent, so the circle behind it is pinned to
+                      ink-950 (#0e1015) to match. Both layers stay that colour in
+                      light mode too — theming them would leave the dark hem
+                      sitting on a pale circle, which is what made the avatar
+                      read differently between the two themes. */}
                   <div
                     aria-hidden
-                    className="absolute inset-0 rounded-full bg-linear-to-t from-ink-100 from-10% to-transparent to-45% dark:from-ink-900"
+                    className="absolute inset-0 rounded-full bg-linear-to-t from-ink-950 from-10% to-transparent to-45%"
                   />
                 </div>
               ) : (

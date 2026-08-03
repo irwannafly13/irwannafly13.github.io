@@ -11,9 +11,9 @@ type Props = {
 export function Section({ id, eyebrow, title, intro, children }: Props) {
   // Padding stacks between adjacent sections, so the visible gap is double this.
   return (
-    <section id={id} className="scroll-mt-24 py-12 sm:py-16">
+    <section id={id} className="scroll-mt-24 py-4 sm:py-6">
       <div className="section-shell">
-        <header className="reveal mb-9 max-w-2xl">
+        <header className="reveal mb-6 max-w-2xl">
           <p className="mb-3 font-mono text-xs font-medium tracking-[0.2em] text-accent-600 uppercase dark:text-accent-400">
             {eyebrow}
           </p>
