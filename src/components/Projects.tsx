@@ -1,13 +1,23 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Icon } from './Icon'
 import { Section } from './Section'
 import { ProjectModal } from './ProjectModal'
 import { asset } from '../lib/asset'
 import { projects, projectCategories } from '../data/profile'
+import type { IconName } from './Icon'
 import type { Project } from '../data/profile'
 
-const ALL = 'All'
-const groups = [ALL, ...projectCategories]
+/** Anything whose category isn't one of the known groups lands here. */
+const OTHER = 'Other'
+
+/** Falls back to the generic icon for any category added later. */
+const GROUP_ICONS: Record<string, IconName> = {
+  'Data Platform': 'database',
+  'Analytics & BI': 'chart',
+  'AI & Machine Learning': 'brain',
+  'Self Managed Services': 'tools',
+  'Open Source': 'github',
+}
 
 /* Same treatment as the modal arrows, one size down. */
 const arrow =
@@ -35,7 +45,10 @@ function ProjectCard({
   return (
     /* Fixed height, not an aspect ratio: every card is identical whatever the
        shot's dimensions are, and it no longer changes with column width. */
-    <article className="card reveal group relative h-80 overflow-hidden transition-all hover:-translate-y-1 hover:border-accent-400/60 dark:hover:border-accent-400/40">
+    /* No .reveal here: the card mounts inside a collapsed panel, so it would
+       sit at opacity 0 until it happened to cross the viewport again. The
+       group card around it does the fade in instead. */
+    <article className="card group relative h-80 overflow-hidden transition-all hover:-translate-y-1 hover:border-accent-400/60 dark:hover:border-accent-400/40">
       {shots.length > 0 ? (
         <button
           type="button"
@@ -53,7 +66,7 @@ function ProjectCard({
               alt=""
               loading="lazy"
               aria-hidden={i !== index}
-              className={`absolute inset-0 size-full object-contain transition-opacity duration-500 ease-out ${
+              className={`absolute inset-0 size-full object-cover object-top transition-opacity duration-500 ease-out ${
                 i === index ? 'opacity-100' : 'opacity-0'
               }`}
             />
@@ -90,8 +103,9 @@ function ProjectCard({
         </>
       )}
 
-      {/* 95% panel — nearly solid, so the title stays legible over any shot. */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-white/95 p-4 backdrop-blur-md dark:bg-ink-950/95">
+      {/* 90% panel — the shot shows through a little, and the blur keeps the
+          title legible over whatever is behind it. */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-white/90 p-4 backdrop-blur-md dark:bg-ink-950/90">
         <h3 className="text-base">
           {project.name}
           {project.featured && (
@@ -132,19 +146,49 @@ function ProjectCard({
             </a>
           )}
         </div>
+
+        {project.tags.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5">
+            {project.tags.map((tag) => (
+              <li
+                key={tag}
+                className="rounded-lg border border-ink-200 px-2 py-0.5 font-mono text-[0.7rem] text-ink-500 dark:border-white/10 dark:text-ink-400"
+              >
+                {tag}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   )
 }
 
 export function Projects() {
-  const [group, setGroup] = useState<string>(ALL)
   const [open, setOpen] = useState<Project | null>(null)
+  /* One group at a time: picking another closes whatever was open, so the
+     cards below always belong to exactly one button. Clicking the open one
+     again closes it. */
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const baseId = useId()
+  const panelId = (name: string) => `${baseId}-${name.replace(/\W+/g, '-')}`
+
+  const toggle = (name: string) =>
+    setExpanded((current) => (current === name ? null : name))
 
   // Featured cards first, original order preserved within each bucket.
-  const ordered = [...projects]
-    .filter((project) => group === ALL || project.category === group)
-    .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
+  const bucket = (name: string) =>
+    [...projects]
+      .filter((project) =>
+        name === OTHER
+          ? !projectCategories.includes(project.category as never)
+          : project.category === name,
+      )
+      .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
+
+  /* Only shown when something actually falls outside the known categories —
+     without it, a project with a typo'd category would silently vanish. */
+  const groups = [...projectCategories, ...(bucket(OTHER).length > 0 ? [OTHER] : [])]
 
   return (
     <Section
@@ -152,57 +196,69 @@ export function Projects() {
       eyebrow="03 — Portfolio"
       title="Things I've built"
     >
-      {/* Horizontal scroll rather than wrapping, so the row stays one line on
-          a phone however many groups end up here. */}
-      <div
-        role="tablist"
-        aria-label="Filter projects by group"
-        className="scroll-slim -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1"
-      >
+      {/* All the group buttons sit in one row at the top; opening one drops its
+          cards into the area underneath rather than pushing the other buttons
+          down the page. */}
+      <div className="reveal mb-6 flex flex-wrap gap-2">
         {groups.map((name) => {
-          const active = name === group
-          const count =
-            name === ALL
-              ? projects.length
-              : projects.filter((project) => project.category === name).length
+          const isOpen = expanded === name
 
           return (
             <button
               key={name}
               type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setGroup(name)}
-              className={`shrink-0 rounded-xl border px-4 py-1.5 text-sm font-medium transition-colors ${
-                active
+              onClick={() => toggle(name)}
+              aria-expanded={isOpen}
+              aria-controls={panelId(name)}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                isOpen
                   ? 'border-accent-500 bg-accent-500/10 text-accent-600 dark:text-accent-400'
                   : 'border-ink-200 text-ink-600 hover:border-accent-400 hover:text-accent-600 dark:border-white/15 dark:text-ink-300 dark:hover:border-accent-400 dark:hover:text-accent-400'
               }`}
             >
+              <Icon name={GROUP_ICONS[name] ?? 'image'} className="size-4" />
               {name}
-              <span className="ml-2 font-mono text-xs opacity-60">{count}</span>
+              <span className="font-mono text-xs opacity-60">
+                {bucket(name).length}
+              </span>
+              <Icon
+                name="chevron-down"
+                className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
             </button>
           )
         })}
       </div>
 
-      {ordered.length === 0 && (
-        <p className="card reveal p-8 text-center text-sm text-ink-500 dark:text-ink-400">
-          Nothing in “{group}” yet. Set{' '}
-          <code className="font-mono text-xs">category: '{group}'</code> on a
-          project in profile.ts to file it here.
+      {expanded === null ? (
+        <p className="text-sm text-ink-500 dark:text-ink-400">
+          Pick a group above to see the projects in it.
         </p>
+      ) : (
+        <div id={panelId(expanded)}>
+          <h3 className="mb-3 flex items-center gap-2 text-sm tracking-wide text-ink-500 uppercase dark:text-ink-400">
+            <Icon name={GROUP_ICONS[expanded] ?? 'image'} className="size-4" />
+            {expanded}
+          </h3>
+          {bucket(expanded).length === 0 ? (
+            <p className="card p-8 text-center text-sm text-ink-500 dark:text-ink-400">
+              Nothing in this group yet. Set{' '}
+              <code className="font-mono text-xs">category: '{expanded}'</code>{' '}
+              on a project in profile.ts to file it here.
+            </p>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2">
+              {bucket(expanded).map((project) => (
+                <ProjectCard
+                  key={project.name}
+                  project={project}
+                  onOpen={() => setOpen(project)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        {ordered.map((project) => (
-          <ProjectCard
-            key={project.name}
-            project={project}
-            onOpen={() => setOpen(project)}
-          />
-        ))}
-      </div>
 
       {open && <ProjectModal project={open} onClose={() => setOpen(null)} />}
     </Section>
