@@ -52,6 +52,9 @@ export function Hero() {
   const typed = useTypewriter(profile.taglines)
   const statColumns = STAT_COLUMNS[profile.stats.length] ?? 'sm:grid-cols-3'
 
+  /** Falls back to the one portrait when no light-mode variant is set. */
+  const lightAvatar = profile.avatarUrlLight ?? profile.avatarUrl ?? undefined
+
   const initials = profile.name
     .split(' ')
     .map((part) => part[0])
@@ -80,33 +83,43 @@ export function Hero() {
                 <div className="relative size-40 sm:size-56">
                   <div
                     aria-hidden
-                    className="absolute inset-0 rounded-full bg-ink-950"
+                    className="absolute inset-0 rounded-full bg-white dark:bg-ink-950"
                   />
                   {/* The mask lives on the wrapper, not the image: a transform on
                       the image would scale its own mask along with it. The wrapper
                       is 111% tall and bottom-aligned, which is what puts the crown
                       of the head 5% of the diameter above the circle. */}
                   <div className="avatar-cutout absolute inset-x-0 bottom-0 h-[111%]">
+                    {/* Two portraits, one per theme: avatar2.png wears white and
+                        avatar.png wears black, so each only disappears cleanly
+                        into its own background. Both are rendered and the theme
+                        picks which is visible, so neither has to load on toggle. */}
                     <img
                       /* Already a built URL, base path included. Don't re-resolve. */
-                      src={profile.avatarUrl}
+                      src={lightAvatar}
                       alt={profile.name}
                       width={224}
                       height={249}
                       /* Scaling about the crown of the head keeps that 5% overhang
                          fixed while the rest of the portrait grows downward. */
-                      className="size-full origin-[50%_5.38%] scale-110 object-contain object-bottom"
+                      className="size-full origin-[50%_5.38%] scale-110 object-contain object-bottom dark:hidden"
+                    />
+                    <img
+                      src={profile.avatarUrl}
+                      alt=""
+                      aria-hidden
+                      width={224}
+                      height={249}
+                      className="hidden size-full origin-[50%_5.38%] scale-110 object-contain object-bottom dark:block"
                     />
                   </div>
-                  {/* The photo fades to near-black (#0d0f12) at the hem rather
-                      than to transparent, so the circle behind it is pinned to
-                      ink-950 (#0e1015) to match. Both layers stay that colour in
-                      light mode too — theming them would leave the dark hem
-                      sitting on a pale circle, which is what made the avatar
-                      read differently between the two themes. */}
+                  {/* Each photo fades out at the hem into its own shirt colour
+                      rather than to transparent, so this wash has to match the
+                      circle behind it in both themes — white under the white
+                      shirt, ink-950 (#0e1015) under the black one. */}
                   <div
                     aria-hidden
-                    className="absolute inset-0 rounded-full bg-linear-to-t from-ink-950 from-10% to-transparent to-45%"
+                    className="absolute inset-0 rounded-full bg-linear-to-t from-white from-10% to-transparent to-45% dark:from-ink-950"
                   />
                 </div>
               ) : (

@@ -6,6 +6,7 @@
  */
 
 import avatar from '../assets/avatar.png'
+import avatarLight from '../assets/avatar2.png'
 
 export type Social = {
   label: string
@@ -122,6 +123,12 @@ export const profile = {
    * a browser or CDN can never hand back the old one.
    */
   avatarUrl: avatar as string | null,
+  /**
+   * The light-mode portrait, at src/assets/avatar2.png. Both are rendered and
+   * the theme swaps which one is visible, so this one needs the same framing
+   * as avatar.png. null falls back to avatarUrl in both themes.
+   */
+  avatarUrlLight: avatarLight as string | null,
   email: 'irwan.sinaga@hotmail.com',
 }
 
