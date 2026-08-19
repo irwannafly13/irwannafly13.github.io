@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Source decks for the learning slides. 24MB each; public/ is copied
+# verbatim into dist, so keep them out of it. Rendered slides live in
+# public/projects/learning/.
+decks/

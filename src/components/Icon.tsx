@@ -22,6 +22,7 @@ type IconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'image'
+  | 'book'
 
 type Props = {
   name: IconName
@@ -66,6 +67,8 @@ const stroked: Partial<Record<IconName, string>> = {
   'chevron-right': 'm9 6 6 6-6 6',
   image:
     'M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Zm0 10 4.5-4.5 5 5M13.5 14l3-3L20 14.5M15.5 8.5h.01',
+  book:
+    'M12 7.5C10.5 6 8.4 5.3 5 5.3c-.7 0-1.3.6-1.3 1.3v10.2c0 .7.6 1.3 1.3 1.3 3.4 0 5.5.7 7 2.2 1.5-1.5 3.6-2.2 7-2.2.7 0 1.3-.6 1.3-1.3V6.6c0-.7-.6-1.3-1.3-1.3-3.4 0-5.5.7-7 2.2Zm0 0V20.3',
 }
 
 export function Icon({ name, className = 'size-5' }: Props) {

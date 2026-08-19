@@ -17,6 +17,7 @@ const GROUP_ICONS: Record<string, IconName> = {
   'AI & Machine Learning': 'brain',
   'Self Managed Services': 'tools',
   'Open Source': 'github',
+  'Learning & Enablement': 'book',
 }
 
 /* Same treatment as the modal arrows, one size down. */

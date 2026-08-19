@@ -462,6 +462,7 @@ export const projectCategories = [
   'AI & Machine Learning',
   'Self Managed Services',
   'Open Source',
+  'Learning & Enablement',
 ] as const
 
 export const projects: Project[] = [
@@ -708,6 +709,68 @@ export const projects: Project[] = [
       'Market-basket analysis on transactional data: mining which items get bought together and ranking the rules by support, confidence and lift. Written up as a worked example with the R code and the interpretation side by side, because the modelling is the short part  reading a rule back as something a merchandiser can act on is the rest of it.',
     tags: ['R', 'Data Mining', 'Association Rules'],
     demo: 'https://irwannafly.blogspot.com/2019/01/how-to-know-customer-needs-from.html',
+  },
+  {
+    name: 'Flutter in 7 Days: A Professional Blueprint',
+    category: 'Learning & Enablement',
+    docs: [
+      '/projects/learning/flutter/01.webp',
+      '/projects/learning/flutter/02.webp',
+      '/projects/learning/flutter/03.webp',
+      '/projects/learning/flutter/04.webp',
+      '/projects/learning/flutter/05.webp',
+      '/projects/learning/flutter/06.webp',
+      '/projects/learning/flutter/07.webp',
+      '/projects/learning/flutter/08.webp',
+      '/projects/learning/flutter/09.webp',
+      '/projects/learning/flutter/10.webp',
+      '/projects/learning/flutter/11.webp',
+      '/projects/learning/flutter/12.webp',
+      '/projects/learning/flutter/13.webp',
+      '/projects/learning/flutter/14.webp',
+      '/projects/learning/flutter/15.webp',
+    ],
+    blurb:
+      'A fifteen-slide visual curriculum in Bahasa Indonesia that takes a developer from first widget to a production-ready Flutter application. It walks the Dart mental model, the three parallel trees behind every rebuild, the one rule the layout engine actually follows, and the state management ladder from setState up to Riverpod, then closes on the parts most tutorials skip: an offline-first repository layer, a 16ms frame budget split across the UI and raster threads, a testing pyramid that is worth maintaining, and a cheat sheet of the ten mistakes that cause the most damage. Built as a teaching deck because explaining an architecture to somebody else is the fastest way to find the holes in your own.',
+    tags: [
+      'Flutter',
+      'Dart',
+      'Riverpod',
+      'State Management',
+      'Architecture',
+      'Testing',
+    ],
+  },
+  {
+    name: 'TypeScript: From Dummy to Dangerous',
+    category: 'Learning & Enablement',
+    docs: [
+      '/projects/learning/typescript/01.webp',
+      '/projects/learning/typescript/02.webp',
+      '/projects/learning/typescript/03.webp',
+      '/projects/learning/typescript/04.webp',
+      '/projects/learning/typescript/05.webp',
+      '/projects/learning/typescript/06.webp',
+      '/projects/learning/typescript/07.webp',
+      '/projects/learning/typescript/08.webp',
+      '/projects/learning/typescript/09.webp',
+      '/projects/learning/typescript/10.webp',
+      '/projects/learning/typescript/11.webp',
+      '/projects/learning/typescript/12.webp',
+      '/projects/learning/typescript/13.webp',
+      '/projects/learning/typescript/14.webp',
+      '/projects/learning/typescript/15.webp',
+    ],
+    blurb:
+      'A blueprint-styled survival guide to the TypeScript type system, aimed at the developer who has stopped fighting the compiler only because they gave up and reached for any. It starts where most confusion starts, that types are erased at runtime and the compiler knows nothing about the data actually arriving, then builds up through inference, the any/unknown/void/never quartet, discriminated unions and narrowing, exhaustiveness checks that turn a forgotten switch case into a compile error, generics as a relational link rather than decoration, and utility types that derive instead of duplicate. It ends at the boundary of truth: validating external data with Zod, because a cast is a promise the compiler cannot keep.',
+    tags: [
+      'TypeScript',
+      'Type System',
+      'Discriminated Unions',
+      'Generics',
+      'Zod',
+      'Developer Enablement',
+    ],
   },
 ]
 
