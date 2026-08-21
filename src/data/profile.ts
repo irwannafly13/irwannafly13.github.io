@@ -693,13 +693,41 @@ export const projects: Project[] = [
     ],
   },
   {
+    name: 'Auto-Viz',
+    category: 'Open Source',
+    docs: [
+      '/projects/autoviz/charts.webp',
+      '/projects/autoviz/dashboards.webp',
+      '/projects/autoviz/upload.webp',
+    ],
+    blurb:
+      'A web application that turns a raw CSV or Excel file into a dashboard without asking you to configure a single chart. A Flask backend profiles every column first — continuous or categorical, datetime, or high-cardinality text that is better left unplotted — then a recommendation engine matches those types to chart types and scores them, so a date next to a number becomes a line chart and two numerics become a scatter. Twelve visualisations come back per upload, rendered in the browser and saved as a dashboard you can group and return to. It exists because the first ten minutes with an unfamiliar dataset are always the same ten minutes, and that part should be automatic.',
+    tags: ['Python', 'Flask', 'pandas', 'Chart.js', 'AngularJS', 'Data Visualization'],
+    repo: 'https://github.com/irwannafly13/auto-viz',
+  },
+  {
+    name: 'TikA — TikTok Automation',
+    category: 'Open Source',
+    docs: [
+      '/projects/tika/dashboard.webp',
+      '/projects/tika/upload.webp',
+      '/projects/tika/queue.webp',
+      '/projects/tika/post.webp',
+      '/projects/tika/products.webp',
+    ],
+    blurb:
+      'A self-hosted Flask dashboard for running several TikTok accounts from one place: upload a video once, pick the accounts or a named group, and it posts immediately or on a schedule while keeping a history of what went out, where, and whether it worked. Each account is authenticated with its own exported cookie file, so no TikTok password is ever stored, and a single background worker drains the queue one item at a time through a Playwright session rather than firing every account in parallel. The design constraints were the interesting part — credentials that stay out of the database, a queue that fails one post instead of a batch, and a deployment that is honest in its README about needing to sit behind a firewall.',
+    tags: ['Python', 'Flask', 'Playwright', 'SQLite', 'Automation', 'Scheduling'],
+    repo: 'https://github.com/irwannafly13/tika-TikTok-Automations',
+  },
+  {
     name: 'inomaly',
     category: 'Open Source',
     docs: ['/projects/inomaly/inomaly.png'],
     blurb:
-      'An R package for anomaly detection, published as a personal project and installable straight from the repository. It packages the checks I kept rewriting from scratch on each engagement into one place, so flagging the points a series shouldn’t contain is a function call rather than a script copied between projects.',
-    tags: ['R', 'Anomaly Detection', 'Package'],
-    repo: 'https://github.com/irwannafly/inomaly',
+      'An R package for the unglamorous half of analysis: detecting anomalies in a variable, filling missing values in one data frame from a matching variable in another, and checking outliers so they can be replaced with a chosen value or the mean vector. It packages the checks I kept rewriting from scratch on each engagement into one place and installs straight from the repository, so cleaning a series before you model it is a function call rather than a script copied between projects.',
+    tags: ['R', 'Anomaly Detection', 'Outliers', 'Imputation', 'Package'],
+    repo: 'https://github.com/irwannafly13/inomaly',
   },
   {
     name: 'Association Rule Mining in R',
