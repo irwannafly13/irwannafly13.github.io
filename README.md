@@ -1,6 +1,6 @@
 # Personal Profile Site
 
-A single-page personal site — about, skills, experience and portfolio — built with
+A personal site — about, skills, experience, portfolio and a blog — built with
 Vite + React + TypeScript + Tailwind CSS v4 and deployed to GitHub Pages by a
 GitHub Actions workflow.
 
@@ -13,14 +13,36 @@ animations, and full mobile support.
 No component edits needed — name, pitch, stats, skills, jobs, education,
 certifications and projects all render from that one file.
 
-Two things live outside it:
+Three things live outside it:
 
 - `index.html` — the `<title>` and the description / Open Graph meta tags.
 - `public/` — your résumé (`resume.pdf`), avatar, and project screenshots.
+- `src/content/posts/` — the blog. See below.
 
 To show the résumé button, put your CV at `public/resume.pdf` and set
 `resumeUrl: '/resume.pdf'` in `profile.ts`. Same idea for `avatarUrl` — drop an
 image in `public/` and point at it, otherwise your initials are shown.
+
+## The blog
+
+The profile page and the blog are separate routes, not two halves of one scroll:
+`/` is the profile, `/blog` lists the posts and `/blog/<slug>` is one post. A
+small history router in [`src/lib/router.ts`](src/lib/router.ts) handles it —
+there is no routing dependency.
+
+**To write a post, add a Markdown file to
+[`src/content/posts/`](src/content/posts/).** The filename becomes the slug and
+therefore the URL, so `trino-federation.md` is served at `/blog/trino-federation`.
+There is no index to update. [`src/content/README.md`](src/content/README.md)
+documents the frontmatter fields; `draft: true` keeps a post out of the build.
+
+Markdown is compiled to HTML at build time by
+[`plugins/markdown.ts`](plugins/markdown.ts), so `marked` stays a devDependency
+and never reaches the browser.
+
+Because GitHub Pages has no rewrite rules, the build also writes `dist/404.html`
+as a copy of `index.html`. That is what makes a direct hit on `/blog/some-post`
+— a refresh, or a shared link — boot the app rather than showing Pages' own 404.
 
 ## Local development
 

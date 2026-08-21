@@ -142,6 +142,114 @@
   }
 }
 
+/*
+ * Long-form styling for compiled Markdown. This is the one place in the app
+ * where the markup is not written by hand — plugins/markdown.ts emits plain
+ * HTML — so the selectors have to reach elements no className can be put on.
+ *
+ * Deliberately not @tailwindcss/typography: the site needs one prose context,
+ * in two themes, and its own colour tokens already exist.
+ */
+@utility prose {
+  @apply max-w-3xl text-base leading-relaxed text-ink-600 dark:text-ink-300;
+
+  & > * + * {
+    @apply mt-5;
+  }
+
+  & h2 {
+    @apply mt-12 text-2xl sm:text-3xl;
+  }
+
+  & h3 {
+    @apply mt-10 text-xl sm:text-2xl;
+  }
+
+  & h4 {
+    @apply mt-8 text-lg;
+  }
+
+  /* The margin above a heading has to beat the generic sibling rule. */
+  & > h2 + *,
+  & > h3 + *,
+  & > h4 + * {
+    @apply mt-4;
+  }
+
+  & a {
+    @apply font-medium text-accent-600 underline decoration-accent-500/40 underline-offset-4 transition-colors hover:decoration-accent-500 dark:text-accent-400;
+  }
+
+  & strong {
+    @apply font-semibold text-ink-900 dark:text-white;
+  }
+
+  & ul,
+  & ol {
+    @apply space-y-2 pl-6;
+  }
+
+  & ul {
+    @apply list-disc;
+  }
+
+  & ol {
+    @apply list-decimal;
+  }
+
+  & li::marker {
+    @apply text-ink-400 dark:text-ink-500;
+  }
+
+  & li > ul,
+  & li > ol {
+    @apply mt-2;
+  }
+
+  & blockquote {
+    @apply border-l-2 border-accent-500/60 pl-5 text-ink-500 italic dark:text-ink-400;
+  }
+
+  /* Inline code only. The descendant guard keeps this off code inside pre,
+     which gets its own treatment below. */
+  & :not(pre) > code {
+    @apply rounded-md bg-ink-100 px-1.5 py-0.5 font-mono text-[0.875em] text-ink-800 dark:bg-white/10 dark:text-ink-100;
+  }
+
+  & pre {
+    @apply overflow-x-auto rounded-xl border border-ink-200 bg-ink-50 p-4 text-sm leading-relaxed dark:border-white/10 dark:bg-white/[0.03];
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-300) transparent;
+  }
+
+  & pre code {
+    @apply font-mono text-ink-700 dark:text-ink-200;
+  }
+
+  /* A wide table scrolls inside its own box rather than widening the page. */
+  & table {
+    @apply block w-full overflow-x-auto text-left text-sm;
+    border-collapse: collapse;
+  }
+
+  & th,
+  & td {
+    @apply border-b border-ink-200 px-3 py-2 align-top dark:border-white/10;
+  }
+
+  & th {
+    @apply font-semibold whitespace-nowrap text-ink-900 dark:text-white;
+  }
+
+  & hr {
+    @apply my-10 border-ink-200 dark:border-white/10;
+  }
+
+  & img {
+    @apply max-w-full rounded-xl border border-ink-200 dark:border-white/10;
+  }
+}
+
 /* Scroll reveal: hidden until the observer adds .is-visible. */
 .reveal {
   opacity: 0;

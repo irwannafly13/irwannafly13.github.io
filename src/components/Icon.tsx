@@ -14,6 +14,7 @@ type IconName =
   | 'sun'
   | 'moon'
   | 'arrow-up-right'
+  | 'arrow-left'
   | 'download'
   | 'menu'
   | 'close'
@@ -23,6 +24,7 @@ type IconName =
   | 'chevron-right'
   | 'image'
   | 'book'
+  | 'pen'
 
 type Props = {
   name: IconName
@@ -58,6 +60,7 @@ const stroked: Partial<Record<IconName, string>> = {
   sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-14v2m0 14v2M4.2 4.2l1.4 1.4m12.8 12.8 1.4 1.4M3 12h2m14 0h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   moon: 'M20 14.2A8.2 8.2 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z',
   'arrow-up-right': 'M7 17 17 7m0 0H8m9 0v9',
+  'arrow-left': 'M19 12H5m0 0 6-6m-6 6 6 6',
   download: 'M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
   menu: 'M4 7h16M4 12h16M4 17h16',
   close: 'm6 6 12 12M18 6 6 18',
@@ -69,6 +72,8 @@ const stroked: Partial<Record<IconName, string>> = {
     'M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Zm0 10 4.5-4.5 5 5M13.5 14l3-3L20 14.5M15.5 8.5h.01',
   book:
     'M12 7.5C10.5 6 8.4 5.3 5 5.3c-.7 0-1.3.6-1.3 1.3v10.2c0 .7.6 1.3 1.3 1.3 3.4 0 5.5.7 7 2.2 1.5-1.5 3.6-2.2 7-2.2.7 0 1.3-.6 1.3-1.3V6.6c0-.7-.6-1.3-1.3-1.3-3.4 0-5.5.7-7 2.2Zm0 0V20.3',
+  pen:
+    'M16.9 3.9a2.3 2.3 0 0 1 3.2 3.2L8.5 18.7l-4.2 1 1-4.2L16.9 3.9ZM14.6 6.2l3.2 3.2',
 }
 
 export function Icon({ name, className = 'size-5' }: Props) {
