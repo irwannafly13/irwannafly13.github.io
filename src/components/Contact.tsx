@@ -13,9 +13,6 @@ export function Contact() {
           />
 
           <div className="relative">
-            <p className="mb-3 font-mono text-xs font-medium tracking-[0.2em] text-accent-600 uppercase dark:text-accent-400">
-              05 — Contact
-            </p>
             <h2 className="text-3xl sm:text-4xl">Let's build something</h2>
             <p className="mx-auto mt-4 max-w-md text-base leading-relaxed">
               Placeholder closing line — say what kind of work or conversation you
