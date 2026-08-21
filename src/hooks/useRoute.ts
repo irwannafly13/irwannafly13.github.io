@@ -17,16 +17,22 @@ function match(path: string): Route {
   return { name: 'notFound', path }
 }
 
+type Location = { path: string; hash: string }
+
+function readLocation(): Location {
+  return { path: readPath(), hash: window.location.hash }
+}
+
 /**
- * Tracks the current route and handles the scrolling that comes with a change:
- * a hash goes to that section, anything else starts at the top. Both wait a
- * frame so the new page is actually in the DOM first.
+ * Tracks the current location and handles the scrolling that comes with a
+ * change: a hash goes to that section, anything else starts at the top. Both
+ * wait a frame so the new page is actually in the DOM first.
  */
 export function useRoute(): Route {
-  const [path, setPath] = useState(readPath)
+  const [location, setLocation] = useState(readLocation)
 
   useEffect(() => {
-    const sync = () => setPath(readPath())
+    const sync = () => setLocation(readLocation())
 
     window.addEventListener('popstate', sync)
     window.addEventListener(ROUTE_CHANGE, sync)
@@ -36,14 +42,33 @@ export function useRoute(): Route {
     }
   }, [])
 
+  /*
+   * Depends on the whole location object, and readLocation() deliberately
+   * returns a fresh one per navigation, so this runs even when the path is
+   * unchanged. Storing the path alone was a bug: going to "/#skills" while
+   * already on "/" set the same string, React bailed out of the update, and
+   * the scroll never happened until a second click took navigate()'s
+   * same-destination branch instead.
+   */
   useEffect(() => {
-    const { hash } = window.location
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      return
+    }
 
-    requestAnimationFrame(() => {
-      if (hash) scrollToHash(hash)
-      else window.scrollTo({ top: 0, behavior: 'auto' })
-    })
-  }, [path])
+    /*
+     * Effects run after the commit, so the target is normally in the DOM
+     * already and this scrolls straight away. Deferring the whole thing to
+     * requestAnimationFrame was a mistake: a hash-only change repaints
+     * nothing, so the frame — and the scroll with it — could be left waiting
+     * until something else happened to trigger one. The retry covers the case
+     * where the section genuinely is not mounted yet.
+     */
+    if (scrollToHash(location.hash)) return
 
-  return match(path)
+    const frame = requestAnimationFrame(() => scrollToHash(location.hash))
+    return () => cancelAnimationFrame(frame)
+  }, [location])
+
+  return match(location.path)
 }

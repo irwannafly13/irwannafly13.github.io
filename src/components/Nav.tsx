@@ -19,7 +19,7 @@ type Props = {
 export function Nav({ theme, onToggleTheme, onHome, onBlog }: Props) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const observed = useActiveSection(sectionIds)
+  const observed = useActiveSection(sectionIds, onHome)
 
   // Off the profile page there is no section under the header to track, and
   // the observer's fallback would light up the first link for no reason.

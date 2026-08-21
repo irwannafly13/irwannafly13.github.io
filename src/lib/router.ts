@@ -51,16 +51,17 @@ export function navigate(to: string, options: { replace?: boolean } = {}) {
 /**
  * Scrolls to an element by id. Called after a route render rather than left to
  * the browser, because the target section does not exist yet at the moment the
- * URL changes.
+ * URL changes. Returns false when there is no such element to scroll to.
  */
-export function scrollToHash(hash: string) {
+export function scrollToHash(hash: string): boolean {
   const id = hash.replace(/^#/, '')
-  if (!id) return
+  if (!id) return false
 
   const target = document.getElementById(id)
-  if (!target) return
+  if (!target) return false
 
   target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  return true
 }
 
 /** True for a click the router should handle instead of the browser. */
