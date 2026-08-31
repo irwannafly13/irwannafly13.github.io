@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { Link } from './Link'
 import { useActiveSection } from '../hooks/useActiveSection'
-import { sections } from '../data/profile'
+import { profile, sections } from '../data/profile'
+import logoMark from '../assets/logo-mark.png'
 import type { Theme } from '../hooks/useTheme'
 
 const sectionIds = sections.map((section) => section.id)
@@ -49,21 +50,39 @@ export function Nav({ theme, onToggleTheme, onHome, onBlog }: Props) {
       }`}
     >
       <nav className="section-shell flex h-16 items-center justify-between gap-4">
-        <div className="hidden items-center gap-1 md:flex">
-          {sections.map((section) => (
-            <Link
-              key={section.id}
-              to={`/#${section.id}`}
-              aria-current={active === section.id ? 'true' : undefined}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active === section.id
-                  ? 'text-accent-600 dark:text-accent-400'
-                  : 'text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white'
-              }`}
-            >
-              {section.label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* The mark carries its own dark ground, so it is rounded to read as
+              a deliberate tile rather than a black square on the light theme. */}
+          <Link
+            to="/"
+            aria-label={`${profile.name} — home`}
+            className="shrink-0 rounded-lg outline-offset-4 transition-opacity hover:opacity-80"
+          >
+            <img
+              src={logoMark}
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 rounded-lg ring-1 ring-ink-200/70 dark:ring-white/10"
+            />
+          </Link>
+
+          <div className="hidden items-center gap-1 md:flex">
+            {sections.map((section) => (
+              <Link
+                key={section.id}
+                to={`/#${section.id}`}
+                aria-current={active === section.id ? 'true' : undefined}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  active === section.id
+                    ? 'text-accent-600 dark:text-accent-400'
+                    : 'text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white'
+                }`}
+              >
+                {section.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
