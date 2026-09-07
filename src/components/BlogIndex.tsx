@@ -3,6 +3,7 @@ import { Icon } from './Icon'
 import { Link } from './Link'
 import { formatDate, posts, tags } from '../data/blog'
 import { profile } from '../data/profile'
+import { asset } from '../lib/asset'
 
 const ALL = 'All'
 
@@ -10,7 +11,8 @@ export function BlogIndex() {
   const [tag, setTag] = useState(ALL)
 
   const visible = useMemo(
-    () => (tag === ALL ? posts : posts.filter((post) => post.tags.includes(tag))),
+    () =>
+      tag === ALL ? posts : posts.filter((post) => post.tags.includes(tag)),
     [tag],
   )
 
@@ -59,44 +61,63 @@ export function BlogIndex() {
               <li key={post.slug}>
                 {/* The whole card is the link. The tag row below sits outside
                     it, so those buttons stay independently clickable. */}
-                <article className="reveal card group relative px-6 py-6 transition-colors hover:border-accent-400/60 sm:px-8 sm:py-7 dark:hover:border-accent-400/40">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-400 dark:text-ink-500">
-                    <time dateTime={post.date}>{formatDate(post.date)}</time>
-                    <span aria-hidden>·</span>
-                    <span>{post.readingMinutes} min read</span>
-                  </div>
-
-                  <h2 className="mt-2 text-xl sm:text-2xl">
-                    <Link
-                      to={`/blog/${post.slug}`}
-                      /* Stretched so the click target is the whole card, while
-                         the accessible name stays just the title. */
-                      className="after:absolute after:inset-0 after:content-[''] group-hover:text-accent-600 dark:group-hover:text-accent-400"
-                    >
-                      {post.title}
-                    </Link>
-                  </h2>
-
-                  <p className="mt-3 max-w-2xl text-base leading-relaxed">
-                    {post.summary}
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap items-center gap-2">
-                    {post.tags.map((name) => (
-                      <span
-                        key={name}
-                        className="rounded-md border border-ink-200 px-2 py-0.5 font-mono text-xs text-ink-500 dark:border-white/10 dark:text-ink-400"
-                      >
-                        {name}
-                      </span>
-                    ))}
-                    <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-accent-600 dark:text-accent-400">
-                      Read
-                      <Icon
-                        name="arrow-up-right"
-                        className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                <article className="reveal card group relative flex flex-col gap-5 px-6 py-6 transition-colors hover:border-accent-400/60 sm:flex-row sm:items-center sm:gap-6 sm:px-8 sm:py-7 dark:hover:border-accent-400/40">
+                  {post.cover && (
+                    /* Preview of the same picture the post opens with, sitting
+                       left of the text and centred against it. Fixed box so a
+                       tall shot and a wide one leave the cards the same shape,
+                       with the crop taken from the middle of the picture; the
+                       article's own stretched link covers it, which is why it
+                       is not a link itself. */
+                    <div className="shrink-0 overflow-hidden rounded-xl border border-ink-200 bg-ink-50 sm:w-48 lg:w-56 dark:border-white/10 dark:bg-white/5">
+                      <img
+                        src={asset(post.cover)}
+                        alt=""
+                        loading="lazy"
+                        className="h-48 w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03] sm:h-36 lg:h-40"
                       />
-                    </span>
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-400 dark:text-ink-500">
+                      <time dateTime={post.date}>{formatDate(post.date)}</time>
+                      <span aria-hidden>·</span>
+                      <span>{post.readingMinutes} min read</span>
+                    </div>
+
+                    <h2 className="mt-2 text-xl sm:text-2xl">
+                      <Link
+                        to={`/blog/${post.slug}`}
+                        /* Stretched so the click target is the whole card,
+                           while the accessible name stays just the title. */
+                        className="after:absolute after:inset-0 after:content-[''] group-hover:text-accent-600 dark:group-hover:text-accent-400"
+                      >
+                        {post.title}
+                      </Link>
+                    </h2>
+
+                    <p className="mt-3 max-w-2xl text-base leading-relaxed">
+                      {post.summary}
+                    </p>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-2">
+                      {post.tags.map((name) => (
+                        <span
+                          key={name}
+                          className="rounded-md border border-ink-200 px-2 py-0.5 font-mono text-xs text-ink-500 dark:border-white/10 dark:text-ink-400"
+                        >
+                          {name}
+                        </span>
+                      ))}
+                      <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-accent-600 dark:text-accent-400">
+                        Read
+                        <Icon
+                          name="arrow-up-right"
+                          className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        />
+                      </span>
+                    </div>
                   </div>
                 </article>
               </li>

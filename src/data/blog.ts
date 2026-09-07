@@ -14,6 +14,9 @@ export type Post = {
   summary: string
   tags: string[]
   draft: boolean
+  /** Root-relative path in public/, or '' when the post has no picture. */
+  cover: string
+  coverAlt: string
   readingMinutes: number
   html: string
 }

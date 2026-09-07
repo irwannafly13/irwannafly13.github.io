@@ -14,6 +14,13 @@ declare module '*.md' {
     tags: string[]
     /** Drafts are compiled but never listed or routed to. */
     draft: boolean
+    /**
+     * Root-relative path to the post's picture in public/, e.g.
+     * /blog/my-post/cover.jpg. Empty when the post has none.
+     */
+    cover: string
+    /** Alt text for the cover. Empty means it is decorative. */
+    coverAlt: string
     readingMinutes: number
     html: string
   }

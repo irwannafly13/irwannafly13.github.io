@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { relative, resolve, sep } from 'node:path'
 import { marked } from 'marked'
-import type { Plugin } from 'vite'
+import type { Plugin, ResolvedConfig } from 'vite'
 
 /**
  * The shape a `.md` import resolves to. Kept in step with src/types/markdown.d.ts,
@@ -13,6 +14,9 @@ export type CompiledPost = {
   summary: string
   tags: string[]
   draft: boolean
+  /** Root-relative path in public/, e.g. /blog/my-post/cover.jpg. '' if none. */
+  cover: string
+  coverAlt: string
   readingMinutes: number
   html: string
 }
@@ -22,13 +26,55 @@ const WPM = 200
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/
 
+/** What counts as a picture when a folder is scanned for a post's cover. */
+const IMAGE = /\.(jpe?g|png|webp|avif|gif|svg)$/i
+
+/**
+ * A post's picture lives in public/blog/<slug>/, so the folder holds the cover
+ * and whatever else the body references. `cover: /blog/…` in the frontmatter
+ * wins. Otherwise the folder is scanned: a file named cover.<ext> is taken
+ * first, and failing that a folder holding exactly one picture uses it — drop
+ * a png in and the post has a cover, whatever it is called. A folder with
+ * several pictures and no cover.<ext> is ambiguous, so nothing is guessed and
+ * the post needs a `cover:` line.
+ */
+function findCover(root: string, slug: string, declared: string): string {
+  if (declared) return declared
+
+  const folder = resolve(root, 'public/blog', slug)
+  if (!existsSync(folder)) return ''
+
+  const images = readdirSync(folder)
+    .filter((name) => IMAGE.test(name))
+    .sort()
+  const named = images.find((name) => /^cover\./i.test(name))
+  const picked = named ?? (images.length === 1 ? images[0] : undefined)
+
+  return picked ? `/blog/${slug}/${picked}` : ''
+}
+
+/**
+ * Rewrites root-relative src/href in the compiled HTML to sit under the
+ * deployed base path — the same job src/lib/asset.ts does for the React tree,
+ * done here because a post's body is already HTML by the time it ships. A post
+ * therefore writes `![…](/blog/my-post/diagram.png)` and it works from a
+ * subdirectory too. Protocol-relative and absolute URLs are untouched.
+ */
+function withBase(html: string, base: string): string {
+  const prefix = base.replace(/\/$/, '')
+  if (!prefix) return html
+  return html.replace(/(\s(?:src|href)=")\/(?!\/)/g, `$1${prefix}/`)
+}
+
 /**
  * A deliberately small YAML subset: one `key: value` per line, with optional
  * quotes, plus `[a, b, c]` inline arrays and true/false. That covers every
  * field a post needs and saves shipping a YAML parser. Anything fancier in a
  * post's frontmatter is a silent no-op, so keep to the documented fields.
  */
-function parseFrontmatter(raw: string): Record<string, string | string[] | boolean> {
+function parseFrontmatter(
+  raw: string,
+): Record<string, string | string[] | boolean> {
   const out: Record<string, string | string[] | boolean> = {}
 
   for (const line of raw.split(/\r?\n/)) {
@@ -81,9 +127,42 @@ function readingMinutes(markdown: string): number {
  * The filename (minus the extension) is the post's slug and therefore its URL.
  */
 export function markdown(): Plugin {
+  let config: ResolvedConfig
+
   return {
     name: 'profile-markdown',
     enforce: 'pre',
+
+    configResolved(resolved) {
+      config = resolved
+    },
+
+    /**
+     * A post is compiled once and then cached in the module graph, so adding a
+     * picture to public/blog/<slug>/ would otherwise not show up until the dev
+     * server restarted — the file lands, the page reloads, and the stale
+     * module is served again. Invalidating that post's module makes the drop
+     * take effect on the next reload.
+     */
+    configureServer(server) {
+      const pictures = resolve(config.root, 'public/blog')
+      server.watcher.add(pictures)
+
+      const invalidate = (file: string) => {
+        if (!file.startsWith(pictures)) return
+
+        const slug = relative(pictures, file).split(sep)[0]
+        const post = resolve(config.root, `src/content/posts/${slug}.md`)
+        const module = server.moduleGraph.getModuleById(post)
+        if (!module) return
+
+        server.moduleGraph.invalidateModule(module)
+        server.ws.send({ type: 'full-reload' })
+      }
+
+      server.watcher.on('add', invalidate)
+      server.watcher.on('unlink', invalidate)
+    },
 
     transform(_code, id) {
       const [file] = id.split('?')
@@ -109,8 +188,17 @@ export function markdown(): Plugin {
         summary: typeof meta.summary === 'string' ? meta.summary : '',
         tags: Array.isArray(meta.tags) ? meta.tags : [],
         draft: meta.draft === true,
+        cover: findCover(
+          config.root,
+          slug,
+          typeof meta.cover === 'string' ? meta.cover : '',
+        ),
+        coverAlt: typeof meta.coverAlt === 'string' ? meta.coverAlt : '',
         readingMinutes: readingMinutes(body),
-        html: marked.parse(body, { async: false, gfm: true, breaks: false }),
+        html: withBase(
+          marked.parse(body, { async: false, gfm: true, breaks: false }),
+          config.base,
+        ),
       }
 
       return {

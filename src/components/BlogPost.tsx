@@ -1,6 +1,7 @@
 import { Icon } from './Icon'
 import { Link } from './Link'
 import { formatDate, getPost, neighbours } from '../data/blog'
+import { asset } from '../lib/asset'
 
 type Props = {
   slug: string
@@ -49,6 +50,19 @@ export function BlogPost({ slug }: Props) {
             </div>
           )}
         </header>
+
+        {post.cover && (
+          /* The same picture the index card previews, at full width. Alt text
+             comes from `coverAlt`; without it the picture is decorative and
+             screen readers skip it, which is right for a mood shot. */
+          <figure className="reveal is-visible mt-10 max-w-3xl overflow-hidden rounded-2xl border border-ink-200 bg-ink-50 dark:border-white/10 dark:bg-white/5">
+            <img
+              src={asset(post.cover)}
+              alt={post.coverAlt}
+              className="w-full object-cover"
+            />
+          </figure>
+        )}
 
         <hr className="my-10 border-ink-200 dark:border-white/10" />
 
