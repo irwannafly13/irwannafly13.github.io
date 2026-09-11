@@ -25,6 +25,7 @@ type IconName =
   | 'image'
   | 'book'
   | 'pen'
+  | 'search'
 
 type Props = {
   name: IconName
@@ -74,6 +75,7 @@ const stroked: Partial<Record<IconName, string>> = {
     'M12 7.5C10.5 6 8.4 5.3 5 5.3c-.7 0-1.3.6-1.3 1.3v10.2c0 .7.6 1.3 1.3 1.3 3.4 0 5.5.7 7 2.2 1.5-1.5 3.6-2.2 7-2.2.7 0 1.3-.6 1.3-1.3V6.6c0-.7-.6-1.3-1.3-1.3-3.4 0-5.5.7-7 2.2Zm0 0V20.3',
   pen:
     'M16.9 3.9a2.3 2.3 0 0 1 3.2 3.2L8.5 18.7l-4.2 1 1-4.2L16.9 3.9ZM14.6 6.2l3.2 3.2',
+  search: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Zm5.2-1.8L20 19.5',
 }
 
 export function Icon({ name, className = 'size-5' }: Props) {

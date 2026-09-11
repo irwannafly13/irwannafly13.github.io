@@ -33,17 +33,6 @@ export const posts: Post[] = Object.values(modules)
   .filter((post) => !post.draft)
   .sort((a, b) => b.date.localeCompare(a.date))
 
-/** Every tag in use, most-used first, then alphabetically to break ties. */
-export const tags: string[] = (() => {
-  const counts = new Map<string, number>()
-  for (const post of posts) {
-    for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([tag]) => tag)
-})()
-
 export function getPost(slug: string): Post | undefined {
   return posts.find((post) => post.slug === slug)
 }

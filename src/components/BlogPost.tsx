@@ -15,8 +15,8 @@ export function BlogPost({ slug }: Props) {
 
   return (
     <div className="pt-28 pb-16 sm:pt-32">
-      <article className="section-shell">
-        <header className="reveal is-visible max-w-3xl">
+      <article className="section-shell max-w-3xl">
+        <header className="reveal is-visible">
           <Link
             to="/blog"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 transition-colors hover:text-ink-900 dark:text-ink-400 dark:hover:text-white"
@@ -55,7 +55,7 @@ export function BlogPost({ slug }: Props) {
           /* The same picture the index card previews, at full width. Alt text
              comes from `coverAlt`; without it the picture is decorative and
              screen readers skip it, which is right for a mood shot. */
-          <figure className="reveal is-visible mt-10 max-w-3xl overflow-hidden rounded-2xl border border-ink-200 bg-ink-50 dark:border-white/10 dark:bg-white/5">
+          <figure className="reveal is-visible mt-10 overflow-hidden rounded-2xl border border-ink-200 bg-ink-50 dark:border-white/10 dark:bg-white/5">
             <img
               src={asset(post.cover)}
               alt={post.coverAlt}
