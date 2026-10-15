@@ -1,0 +1,2509 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<script src="mock-api.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Watcher (demo)</title>
+<style>
+.demo-chip{font:600 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#15101f;background:#f3e600;padding:4px 7px;border-radius:3px;margin-left:10px;vertical-align:middle}
+
+:root {
+  color-scheme: dark;
+  --bg: #07080b;
+  --panel: #1a1a19;
+  --panel-2: #222220;
+  --line: #2f2f2c;
+  --ring: #9a998f;
+  --neon-core: #eef6ff;
+  --neon-glow: #9cc3ee;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8d8c84;
+  --accent: #3987e5;
+  --st-success: #0ca30c;
+  --st-running: #3987e5;
+  --st-stale: #fab219;
+  --st-skipped: #ec835a;
+  --st-failed: #d03b3b;
+  --st-idle: #5d5c57;
+  --hub-airflow: #017cee;
+  --hub-dbt: #ff694b;
+  --hub-trino: #dd00a1;
+  --hub-ops: #63d4ff;
+  --hub-alerts: #ff5a5a;
+  --core: #f5a524;
+  --edge-down: #fab219;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef0f3;
+  --panel: #fcfcfb;
+  --panel-2: #f0f0ed;
+  --line: #e2e1dc;
+  --ring: #66655f;
+  --neon-core: #2c2c29;
+  --neon-glow: #6d6c66;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --accent: #2a78d6;
+  --st-running: #2a78d6;
+  --st-idle: #a9a8a1;
+  --hub-ops: #1f5fa8;
+  --hub-alerts: #b42318;
+  --core: #e08a00;
+  --edge-down: #c98500;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text-primary);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+}
+header {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+}
+h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+h1 .sub { font-size: 11.5px; font-weight: 400; color: var(--text-muted); margin-left: 4px; }
+.live { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-idle); }
+.live.on i { background: var(--st-success); animation: beat 2s infinite; }
+@keyframes beat { 0% { box-shadow: 0 0 0 0 rgba(12,163,12,.6); } 70% { box-shadow: 0 0 0 6px rgba(12,163,12,0); } 100% { box-shadow: 0 0 0 0 rgba(12,163,12,0); } }
+.scope { color: var(--text-secondary); font-size: 12px; }
+.scope b { color: var(--text-primary); font-weight: 600; }
+.spacer { flex: 1; }
+.controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+input[type=search] {
+  background: var(--panel-2); color: var(--text-primary); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 9px; width: 170px; font: inherit;
+}
+button, .btn {
+  background: var(--panel-2); color: var(--text-primary); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+button:hover, .btn:hover { border-color: var(--text-muted); }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 6px 6px 0; }
+
+main { display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+#stage { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto 1fr auto; }
+#progress { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; padding: 12px 16px 8px; }
+.tier { font-size: 11px; color: var(--text-secondary); cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; border: 1px solid transparent; transition: opacity .2s; }
+.tier:hover { background: var(--panel-2); }
+.tier:focus-visible { outline: 2px solid var(--accent); }
+.tier.active { background: var(--panel-2); border-color: var(--accent); }
+.tier.off { opacity: .45; }
+#layerChip button { padding: 0 7px; margin-left: 4px; }
+#errOnly b { display: inline-block; min-width: 1.4em; padding: 0 4px; margin-left: 2px; border-radius: 8px; font-size: 11px; text-align: center; background: var(--panel-2); color: var(--text-muted); }
+#errOnly.has b { background: var(--st-failed); color: #fff; }
+#errOnly.has:not([aria-pressed="true"]) { animation: errPulse 2.4s ease-in-out infinite; }
+#errOnly[aria-pressed="true"], :root[data-theme="dark"] #errOnly[aria-pressed="true"] { border-color: var(--st-failed); color: var(--st-failed); box-shadow: inset 0 0 10px rgba(208,59,59,.25); }
+/* Lineage canvas (lineage2d.js): covers the 3D view, under the cards and the panel handle */
+.dot.metal { width: 10px; height: 10px; box-shadow: inset -2px -2px 3px rgba(0,0,0,.35); }
+.dot.metal.bronze { background: radial-gradient(circle at 35% 35%, #ffb878, #c8702a 55%, #6b3a17); }
+.dot.metal.silver { background: radial-gradient(circle at 35% 35%, #ffffff, #9fb0c4 55%, #5d6672); }
+.dot.metal.gold { background: radial-gradient(circle at 35% 35%, #fff2b0, #f0b000 55%, #7a5800); }
+#lineage { position: absolute; inset: 0; z-index: 3; background: var(--bg); }
+#lineage[hidden] { display: none; }
+body.canvas-mode #view > :is(canvas, #labels, #ticker, #help) { visibility: hidden; }   /* the 3D scene is paused under it */
+#lineage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+#lineage .lin-bar { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#lineage .lin-title { font-weight: 650; font-size: 13px; margin-right: 6px; color: var(--text-primary); }
+@media (max-width: 700px) { #lineage .lin-title { display: none; } }
+#lineage .lin-bar button[disabled] { opacity: .4; cursor: default; }
+#lineage .lin-info, #lineage .lin-tip {
+  position: absolute; font-size: 12px; line-height: 1.5; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; color: var(--text-secondary); }
+#lineage .lin-info { left: 10px; bottom: 10px; max-width: min(520px, calc(100% - 20px)); pointer-events: none; }
+#lineage .lin-info b, #lineage .lin-tip b { color: var(--text-primary); overflow-wrap: anywhere; }
+#lineage .lin-info .u { color: var(--accent); font-weight: 600; } #lineage .lin-info .d { color: var(--edge-down); font-weight: 600; } #lineage .lin-info .f { color: var(--st-failed); font-weight: 600; }
+#lineage .lin-info .key { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+#lineage .lin-info .k { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin: 0 3px 0 0; }
+#lineage .lin-info .k.down { margin-left: 6px; } #lineage .lin-info .k.up { background: var(--accent); } #lineage .lin-info .k.down { background: var(--edge-down); }
+#lineage .lin-tip { pointer-events: none; max-width: 320px; z-index: 1; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+:root[data-theme="dark"] #lineage :is(.lin-info, .lin-tip) { background: rgba(6,18,38,.88); border-color: var(--hud-faint); border-radius: 0; }
+@keyframes errPulse { 50% { box-shadow: 0 0 0 2px rgba(208,59,59,.35); } }
+@media (prefers-reduced-motion: reduce) { #errOnly.has { animation: none !important; } }
+.tier .name { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 4px; }
+.tier .name b { color: var(--text-primary); font-weight: 600; }
+.bar { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--panel-2); }
+.bar span { height: 100%; }
+#view { position: relative; min-height: 0; overflow: hidden; touch-action: none; }
+#view canvas { position: absolute; inset: 0; display: block; outline: none; }
+#labels { position: absolute; inset: 0; pointer-events: none; z-index: 1; }   /* own stacking layer: 3D labels stay under the info card */
+.lbl { font-size: 10.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; text-shadow: 0 0 4px var(--bg); }
+.lbl.ring-lbl {
+  font-size: 12px; font-weight: 650; letter-spacing: .5px; color: var(--text-primary); text-shadow: none;
+  background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--ring);
+  border-radius: 999px; padding: 3px 10px; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.lbl.ring-lbl b { color: var(--text-secondary); font-weight: 500; margin-left: 4px; }
+.lbl.ring-lbl { pointer-events: auto; cursor: pointer; transition: opacity .2s; opacity: .5; }
+.lbl.ring-lbl:hover { border-color: var(--text-primary); opacity: 1; }
+.lbl.ring-lbl.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); opacity: 1; }
+.lbl.ring-lbl.off { opacity: .2; }
+.hub { text-align: center; text-transform: none; letter-spacing: 0; text-shadow: 0 0 6px var(--bg), 0 0 2px var(--bg); }
+.hub b { display: block; font-size: 13px; color: var(--text-primary); }
+.hub span { font-size: 11px; color: var(--text-secondary); }
+#ticker { position: absolute; left: 12px; top: 10px; display: grid; gap: 4px; pointer-events: none; max-width: min(640px, 80%); }
+.tk { font-size: 11.5px; background: color-mix(in srgb, var(--panel) 82%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; display: flex; gap: 6px; align-items: center; animation: tkin .25s ease-out; transition: opacity .6s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk code { color: var(--text-primary); font-size: 11px; }
+.tk .arrow { color: var(--text-muted); }
+@keyframes tkin { from { transform: translateY(-6px); opacity: 0; } }
+#help { position: absolute; right: 12px; bottom: 10px; font-size: 11px; color: var(--text-muted); pointer-events: none; text-align: right; text-shadow: 0 0 4px var(--bg); }
+#legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 16px 12px; color: var(--text-secondary); font-size: 12px; align-items: center; }
+.lg { display: inline-flex; align-items: center; gap: 6px; }
+.flow { display: inline-flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--line); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ico { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; font-weight: 700; color: #fff; flex: none; }
+.ico.success { background: var(--st-success); }
+.ico.running { background: var(--st-running); }
+.ico.stale { background: var(--st-stale); color: #1a1a19; }
+.ico.skipped { background: var(--st-skipped); color: #1a1a19; }
+.ico.failed { background: var(--st-failed); }
+.ico.idle { background: var(--st-idle); }
+
+main > aside { border-left: 1px solid var(--line); background: var(--panel); display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 4px; color: var(--text-secondary); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--accent); }
+.pane { overflow: auto; padding: 12px 14px; min-height: 0; }
+.pane[hidden] { display: none; }
+.run { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; margin-bottom: 8px; cursor: pointer; background: var(--panel-2); }
+.run:hover { border-color: var(--text-muted); }
+.run.sel { border-color: var(--accent); }
+.run .top { display: flex; align-items: center; gap: 8px; }
+.run .dag { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run .meta { color: var(--text-muted); font-size: 11.5px; margin: 3px 0 6px 24px; }
+.run .bar { margin-left: 24px; }
+.hop { border-bottom: 1px solid var(--line); padding: 8px 2px; cursor: pointer; }
+.hop:hover { background: var(--panel-2); }
+.hop .h1 { display: flex; gap: 6px; align-items: center; }
+.hop .h1 b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.hop .path { margin: 4px 0 0 22px; display: grid; grid-template-columns: 62px 1fr; gap: 1px 8px; font-size: 11.5px; color: var(--text-secondary); }
+.hop .path span:nth-child(odd) { color: var(--text-muted); }
+.hop .path code { font-size: 11px; word-break: break-all; }
+.muted { color: var(--text-muted); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; margin: 8px 0 14px; font-size: 12.5px; }
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; word-break: break-word; }
+h2 { font-size: 14px; margin: 0 0 2px; word-break: break-all; }
+#pane-detail > .muted { word-break: break-all; font-size: 11.5px; }
+h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 16px 0 6px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--text-muted); font-weight: 500; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+#pane-list td:first-child { white-space: nowrap; }
+#pane-list td:nth-child(2) { word-break: break-all; }
+#pane-list td:nth-child(3), #pane-list td.num { white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border: 1px solid var(--line); border-radius: 12px; padding: 1px 8px; font-size: 11.5px; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.chip:hover { border-color: var(--text-muted); }
+.err { color: var(--st-failed); white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 11.5px; background: var(--panel-2); padding: 8px; border-radius: 6px; }
+a { color: var(--accent); }
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.35); max-width: 340px; display: none;
+}
+#tip .t { font-weight: 600; margin-bottom: 4px; word-break: break-all; }
+#tip .row { display: flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.empty { color: var(--text-muted); padding: 20px 4px; text-align: center; }
+.station {
+  /* Sci-fi HUD panel (game-tooltip look): chamfered frame, glowing edge, scan lines, see-through.
+     Same dark holographic palette in both themes, like an in-game overlay. */
+  --hud: #63d4ff; --hud-dim: rgba(99,212,255,.38); --hud-faint: rgba(99,212,255,.12);
+  --hud-text: #e6f6ff; --hud-muted: rgba(190,225,255,.62);
+  position: absolute; right: 16px; top: 16px; bottom: 16px; width: min(370px, calc(100% - 32px)); z-index: 5;
+  display: flex; color: var(--hud-text);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  background:
+    linear-gradient(135deg, transparent 12px, var(--hud) 12px 13.4px, transparent 13.4px) 0 0 / 20px 20px no-repeat,
+    linear-gradient(315deg, transparent 12px, var(--hud) 12px 13.4px, transparent 13.4px) 100% 100% / 20px 20px no-repeat,
+    repeating-linear-gradient(0deg, rgba(160,220,255,.035) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, rgba(14,38,72,.46), rgba(4,12,28,.34));
+  backdrop-filter: blur(5px) saturate(130%);
+  box-shadow: inset 0 0 0 1px var(--hud-dim), inset 0 0 26px rgba(99,212,255,.16);
+  animation: hudIn .22s ease-out;
+}
+/* corner brackets on the two square corners */
+.station::before, .station::after { content: ""; position: absolute; width: 16px; height: 16px; pointer-events: none; filter: drop-shadow(0 0 4px var(--hud)); }
+.station::before { top: 0; right: 0; border-top: 2px solid var(--hud); border-right: 2px solid var(--hud); }
+.station::after { bottom: 0; left: 0; border-bottom: 2px solid var(--hud); border-left: 2px solid var(--hud); }
+@keyframes hudIn { from { opacity: 0; transform: translateX(14px); filter: brightness(2.2); } }
+.station[hidden] { display: none; }
+.st-body {
+  flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 18px;
+  padding: 20px 18px 16px 22px; margin: 3px 3px 3px 0;
+  scrollbar-width: thin; scrollbar-color: var(--hud) var(--hud-faint);
+}
+.st-body::-webkit-scrollbar { width: 6px; }
+.st-body::-webkit-scrollbar-track { background: rgba(99,212,255,.06); border-left: 1px solid rgba(99,212,255,.16); }
+.st-body::-webkit-scrollbar-thumb { background: linear-gradient(var(--hud), rgba(99,212,255,.45)); box-shadow: 0 0 6px var(--hud); }
+.st-head { display: flex; gap: 12px; align-items: flex-start; }
+.st-dot { width: 9px; height: 9px; transform: rotate(45deg); background: var(--st-accent); margin-top: 7px; flex: none; box-shadow: 0 0 10px var(--st-accent), 0 0 2px #fff; }
+.st-titles { flex: 1; min-width: 0; }
+.st-titles h3 { margin: 0; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: #fff; text-shadow: 0 0 10px var(--st-accent); }
+.st-titles p { margin: 4px 0 0; font-size: 11.5px; color: var(--hud-muted); line-height: 1.45; }
+.station .st-close, .station .st-links .btn {
+  background: rgba(99,212,255,.08); border: 1px solid var(--hud-dim); color: var(--hud); border-radius: 0;
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.station .st-close { padding: 3px 9px; }
+.station .st-close:hover, .station .st-links .btn:hover { background: rgba(99,212,255,.2); color: #fff; box-shadow: inset 0 0 10px rgba(99,212,255,.4); }
+.st-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+.st-links .btn { padding: 5px 10px; }
+.st-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -6px; }
+.station .badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  border: 1px solid var(--hud-dim); background: rgba(99,212,255,.08); border-radius: 0; color: var(--hud-text);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.station h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--hud); }
+.station h4::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--hud); box-shadow: 0 0 6px var(--hud); flex: none; }
+.station h4::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hud-dim), transparent); }
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed rgba(99,212,255,.15); font-size: 12.5px; }
+.checks li:last-child { border-bottom: 0; }
+.checks .d { color: var(--hud-muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; }
+.specs { display: grid; grid-template-columns: 118px 1fr; gap: 8px 14px; margin: 0; }
+.specs dt { color: var(--hud-muted); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding-top: 1px; }
+.specs dd { margin: 0; word-break: break-word; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-text); }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile {
+  background: rgba(99,212,255,.06); border: 1px solid rgba(99,212,255,.24); padding: 10px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.tile b { display: block; font: 600 16px ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff; text-shadow: 0 0 8px rgba(99,212,255,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile span { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--hud-muted); }
+.st-setup { border: 1px dashed var(--hud-dim); background: rgba(99,212,255,.04); padding: 12px; }
+.st-setup ol { margin: 0; padding-left: 18px; font-size: 12px; color: var(--hud-text); display: grid; gap: 6px; word-break: break-word; }
+.station footer { font: 10.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-muted); border-top: 1px solid rgba(99,212,255,.2); padding-top: 10px; margin-top: auto; }
+.st-loading { color: var(--hud); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+@media (max-width: 900px) { .station { left: 8px; right: 8px; width: auto; top: auto; max-height: 72%; } }
+#nogl { display: none; position: absolute; inset: 0; place-items: center; color: var(--text-secondary); text-align: center; padding: 20px; }
+
+@media (max-width: 900px) {
+  body { display: block; overflow: auto; height: auto; }
+  main { display: block; }
+  #stage { display: block; }
+  #view { height: min(110vw, 600px); }
+  #progress { grid-template-columns: repeat(4, 1fr); }
+  main > aside { border-left: 0; border-top: 1px solid var(--line); min-height: 60vh; }
+  input[type=search] { width: 120px; }
+  #help { display: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════
+   Theme skins. Dark = sci-fi HUD (chamfered glass panels, neon edges, scan lines).
+   Light = formal (clean white panels, square-ish corners, no glow). Shared tokens below.
+   ════════════════════════════════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  --hud: #63d4ff; --hud-dim: rgba(99,212,255,.38); --hud-faint: rgba(99,212,255,.12);
+  --glass: rgba(10,26,52,.55); --glass-2: rgba(99,212,255,.05);
+  --chamfer: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+}
+:root[data-theme="dark"] body { background: radial-gradient(ellipse at 30% 15%, rgba(40,90,180,.16), transparent 60%), var(--bg); }
+:root[data-theme="dark"] header {
+  background: linear-gradient(180deg, rgba(12,30,60,.85), rgba(6,14,30,.75)); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--hud-dim); box-shadow: 0 1px 16px rgba(99,212,255,.16);
+}
+:root[data-theme="dark"] h1 { text-transform: uppercase; letter-spacing: .18em; font-size: 14px; text-shadow: 0 0 10px var(--hud); }
+:root[data-theme="dark"] h1 .sub { text-transform: none; letter-spacing: .04em; text-shadow: none; }
+:root[data-theme="dark"] :is(button, .btn, input[type=search]):not(.tabs button) {
+  --c: 6px; clip-path: var(--chamfer); border-radius: 0; border-color: var(--hud-dim); background: var(--glass-2);
+}
+:root[data-theme="dark"] :is(button, .btn):not(.tabs button) { text-transform: uppercase; font-size: 11px; letter-spacing: .08em; }
+:root[data-theme="dark"] :is(button, .btn):not(.tabs button):hover { background: var(--hud-faint); border-color: var(--hud); box-shadow: inset 0 0 10px var(--hud-faint); }
+:root[data-theme="dark"] button[aria-pressed="true"]:not(.tabs button) { color: var(--hud); border-color: var(--hud); background: var(--hud-faint); }
+:root[data-theme="dark"] input[type=search]:focus { outline: none; border-color: var(--hud); box-shadow: inset 0 0 8px var(--hud-faint); }
+:root[data-theme="dark"] .seg button { clip-path: none; }
+:root[data-theme="dark"] .seg { --c: 6px; clip-path: var(--chamfer); }
+:root[data-theme="dark"] .tier { --c: 8px; clip-path: var(--chamfer); border-radius: 0; background: var(--glass-2); border-color: var(--hud-faint); }
+:root[data-theme="dark"] .tier:hover { background: var(--hud-faint); }
+:root[data-theme="dark"] .tier.active { border-color: var(--hud); box-shadow: inset 0 0 12px var(--hud-faint); }
+:root[data-theme="dark"] .tier .name span { text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+:root[data-theme="dark"] .bar, :root[data-theme="dark"] .bar span { border-radius: 0 !important; }
+:root[data-theme="dark"] main > aside {
+  background: repeating-linear-gradient(0deg, rgba(160,220,255,.025) 0 1px, transparent 1px 3px),
+              linear-gradient(180deg, rgba(10,26,52,.72), rgba(4,12,28,.6));
+  border-left: 1px solid var(--hud-dim); box-shadow: -1px 0 16px rgba(99,212,255,.14); backdrop-filter: blur(6px);
+}
+:root[data-theme="dark"] .tabs { border-bottom-color: var(--hud-dim); }
+:root[data-theme="dark"] .tabs button { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
+:root[data-theme="dark"] .tabs button[aria-selected="true"] {
+  color: var(--hud); border-bottom-color: var(--hud); text-shadow: 0 0 8px var(--hud);
+  background: linear-gradient(0deg, var(--hud-faint), transparent);
+}
+:root[data-theme="dark"] .run { --c: 10px; clip-path: var(--chamfer); border-radius: 0; background: var(--glass-2); border-color: var(--hud-faint); }
+:root[data-theme="dark"] .run:hover { border-color: var(--hud-dim); }
+:root[data-theme="dark"] .run.sel { border-color: var(--hud); box-shadow: inset 0 0 14px var(--hud-faint); }
+:root[data-theme="dark"] .hop { border-bottom: 1px dashed var(--hud-faint); }
+:root[data-theme="dark"] .hop:hover { background: var(--glass-2); }
+:root[data-theme="dark"] :is(th, h3) { color: var(--hud); text-transform: uppercase; letter-spacing: .1em; font-size: 10.5px; }
+:root[data-theme="dark"] td, :root[data-theme="dark"] th { border-bottom: 1px dashed var(--hud-faint); }
+:root[data-theme="dark"] .kv dt { text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
+:root[data-theme="dark"] .chip { --c: 5px; clip-path: var(--chamfer); border-radius: 0; border-color: var(--hud-faint); background: var(--glass-2); }
+:root[data-theme="dark"] .err { border-radius: 0; border-left: 2px solid var(--st-failed); }
+:root[data-theme="dark"] #tip {
+  --c: 10px; clip-path: var(--chamfer); border-radius: 0; background: rgba(6,18,38,.78); backdrop-filter: blur(6px);
+  border-color: var(--hud-dim); box-shadow: inset 0 0 16px var(--hud-faint);
+}
+:root[data-theme="dark"] #tip .t { text-transform: uppercase; letter-spacing: .06em; }
+:root[data-theme="dark"] .tk { --c: 6px; clip-path: var(--chamfer); border-radius: 0; border-color: var(--hud-faint); background: rgba(6,18,38,.7); }
+:root[data-theme="dark"] .lbl.ring-lbl { --c: 6px; clip-path: var(--chamfer); border-radius: 0; background: rgba(6,18,38,.7); border-color: var(--hud-dim); box-shadow: none; }
+:root[data-theme="dark"] .lbl.ring-lbl.active { border-color: var(--hud); box-shadow: inset 0 0 10px var(--hud-faint); }
+:root[data-theme="dark"] .hub b { text-transform: uppercase; letter-spacing: .12em; text-shadow: 0 0 8px var(--hud); }
+:root[data-theme="dark"] #legend { font-size: 11px; }
+:root[data-theme="dark"] .flow { border-left-color: var(--hud-faint); }
+:root[data-theme="dark"] :is(.pane, #pane-list) { scrollbar-width: thin; scrollbar-color: var(--hud) transparent; }
+:root[data-theme="dark"] .pane::-webkit-scrollbar { width: 6px; }
+:root[data-theme="dark"] .pane::-webkit-scrollbar-track { background: rgba(99,212,255,.05); }
+:root[data-theme="dark"] .pane::-webkit-scrollbar-thumb { background: linear-gradient(var(--hud), rgba(99,212,255,.45)); box-shadow: 0 0 6px var(--hud); }
+
+/* Light = formal: the info card drops the HUD skin for a clean white panel */
+:root[data-theme="light"] .station {
+  --hud: #1f5fa8; --hud-dim: #c9d3df; --hud-faint: #eef2f7; --hud-text: #1b1f24; --hud-muted: #5f6b7a;
+  clip-path: none; border-radius: 10px; background: rgba(255,255,255,.96); backdrop-filter: none;
+  box-shadow: 0 0 0 1px #d8dee6, 0 10px 32px rgba(20,40,70,.16);
+}
+:root[data-theme="light"] .station::before, :root[data-theme="light"] .station::after { display: none; }
+:root[data-theme="light"] .st-titles h3 { color: #1b1f24; text-shadow: none; letter-spacing: .02em; text-transform: none; }
+:root[data-theme="light"] .station h4 { letter-spacing: .1em; }
+:root[data-theme="light"] .station h4::before { display: none; }
+:root[data-theme="light"] .station h4::after { background: #e3e8ee; }
+:root[data-theme="light"] .station :is(.st-close, .st-links .btn, .badge, .tile) { clip-path: none; border-radius: 6px; }
+:root[data-theme="light"] .station :is(.st-close, .st-links .btn) { background: #f4f7fa; color: #1f5fa8; text-transform: none; letter-spacing: 0; font-size: 12px; }
+:root[data-theme="light"] .station :is(.st-close, .st-links .btn):hover { background: #e7eef6; box-shadow: none; color: #174a85; }
+:root[data-theme="light"] .station .badge { text-transform: none; letter-spacing: 0; background: #f4f7fa; }
+:root[data-theme="light"] .tile { background: #f6f8fb; border-color: #e3e8ee; }
+:root[data-theme="light"] .tile b { color: #1b1f24; text-shadow: none; }
+:root[data-theme="light"] .st-body::-webkit-scrollbar-thumb { background: #b8c4d2; box-shadow: none; }
+:root[data-theme="light"] .st-body { scrollbar-color: #b8c4d2 transparent; }
+:root[data-theme="light"] .checks li { border-bottom-style: solid; border-bottom-color: #eef1f5; }
+
+/* Ops station card (dashboard / report / logs): wider than the app cards */
+.station.ops { width: min(580px, calc(100% - 32px)); }
+.ops-tabs { flex: none; border-bottom-color: var(--hud-dim); margin-top: -6px; }
+.station .ops-tabs button { color: var(--hud-muted); }
+.station .ops-tabs button[aria-selected="true"] { color: var(--hud-text); border-bottom-color: var(--hud); }
+.ops-ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: -6px; }
+.ops-ctl .grow { flex: 1; }
+.ops-ctl input[type=search] { flex: 1; min-width: 150px; }
+.station .seg { display: inline-flex; gap: 4px; clip-path: none; }
+.station .seg button { padding: 4px 10px; margin-left: 0; }
+.ops-view { display: flex; flex-direction: column; gap: 20px; }
+.station .tiles.k6 { grid-template-columns: repeat(3, 1fr); }
+.dl { display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0; text-transform: none; color: var(--hud-muted); }
+.dl.good { color: #3ddc84; } .dl.bad { color: #ff7a7a; }
+.chart .readout { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-muted); min-height: 16px; margin-bottom: 6px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .ax { stroke: var(--hud-dim); stroke-width: 1; }
+.chart .gl { stroke: var(--hud-faint); stroke-width: 1; }
+.chart text { fill: var(--hud-muted); font: 9.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .hit:hover { fill: var(--hud-faint); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; color: var(--hud-muted); margin-top: 8px; }
+.legend-row i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.lh { display: grid; grid-template-columns: 96px 1fr 104px; gap: 10px; align-items: center; font-size: 11.5px; padding: 4px 0; }
+.lh .bar { display: flex; gap: 2px; height: 9px; }
+.lh .bar i { display: block; height: 100%; border-radius: 2px; min-width: 3px; }
+.lh .n { text-align: right; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-muted); }
+.slow { display: grid; grid-template-columns: 1fr 110px 58px; gap: 10px; align-items: center; font-size: 11.5px; padding: 4px 0; }
+.slow .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slow .nm small { color: var(--hud-muted); margin-left: 6px; }
+.slow .track { height: 6px; background: var(--hud-faint); }
+.slow .track i { display: block; height: 100%; background: var(--hud); border-radius: 0 2px 2px 0; }
+.slow .n { text-align: right; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.summary { margin: 0; font-size: 12.5px; line-height: 1.65; }
+.summary b { color: var(--hud-text); }
+.rtable { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.rtable th { text-align: left; font-weight: 600; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--hud-muted); padding: 5px 6px; border-bottom: 1px solid var(--hud-dim); }
+.rtable td { padding: 6px; border-bottom: 1px dashed rgba(99,212,255,.15); vertical-align: top; }
+.rtable .num { text-align: right; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rtable .errline { margin-top: 3px; color: var(--hud-muted); font: 10.5px ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+.linkish { color: var(--hud); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.logs { list-style: none; margin: 0; padding: 0; }
+.log { border-bottom: 1px dashed rgba(99,212,255,.15); }
+.lrow { display: grid; grid-template-columns: 64px 52px 1fr; gap: 8px; padding: 7px 2px; cursor: pointer; }
+.lrow:hover, .lrow:focus-visible { background: var(--hud-faint); outline: none; }
+.lrow .t { font: 10.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-muted); padding-top: 1px; }
+.lv { align-self: start; text-align: center; padding: 1px 4px; border: 1px solid currentColor; font: 700 9.5px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; }
+.lv.failed { color: #ff6b6b; } .lv.success { color: #3ddc84; } .lv.running { color: #63b3ff; } .lv.skipped { color: #ec835a; } .lv.idle { color: var(--hud-muted); }
+.lrow .m { min-width: 0; font-size: 12px; }
+.lrow .m b { font-weight: 600; word-break: break-all; }
+.lrow .m small { color: var(--hud-muted); margin-left: 6px; }
+.lrow .m span { display: block; margin-top: 2px; color: var(--hud-muted); font-size: 11px; word-break: break-word; }
+.lrow .m span.e { color: #ff8a8a; }
+.ldet { display: grid; gap: 10px; padding: 2px 2px 14px 72px; }
+.ldet .specs { margin: 0; }
+.tasklog { margin: 0; max-height: 280px; overflow: auto; padding: 8px 10px; white-space: pre-wrap; word-break: break-word;
+  font: 10.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-text); background: rgba(0,0,0,.38); border: 1px solid var(--hud-dim); }
+.note { font-size: 11px; line-height: 1.5; color: var(--hud-muted); }
+.more { align-self: center; }
+.lbl.station-lbl b { color: #9fe6ff; }
+:root[data-theme="light"] .lbl.station-lbl b { color: #1f5fa8; }
+:root[data-theme="light"] .dl.good { color: #0b7d33; } :root[data-theme="light"] .dl.bad { color: #b42318; }
+:root[data-theme="light"] .lv.failed { color: #b42318; } :root[data-theme="light"] .lv.success { color: #0b7d33; } :root[data-theme="light"] .lv.running { color: #1f5fa8; } :root[data-theme="light"] .lv.skipped { color: #b4541f; }
+:root[data-theme="light"] .lrow .m span.e { color: #b42318; }
+:root[data-theme="light"] :is(.rtable td, .log) { border-bottom-style: solid; border-bottom-color: #eef1f5; }
+:root[data-theme="light"] .tasklog { background: #f6f8fb; border-color: #e3e8ee; color: #1b1f24; }
+@media (max-width: 900px) { .station.ops { width: auto; } .lh { grid-template-columns: 78px 1fr 64px; } .ldet { padding-left: 4px; } .station .tiles.k6 { grid-template-columns: repeat(2, 1fr); } }
+
+/* Spotlight (double-click): everything but the chosen object fades, its labels stay readable */
+body.spotlight #labels > .lbl:not(.spot) { opacity: .16 !important; }
+/* name tag over the selected / spotlighted planet */
+.lbl.sel-lbl { pointer-events: none; text-transform: none; letter-spacing: 0; text-align: center; padding: 4px 9px; margin-top: -2px;
+  color: #eaf7ff; background: rgba(4,14,30,.72); border: 1px solid #63d4ff; box-shadow: 0 0 10px rgba(99,212,255,.45); text-shadow: none; }
+.lbl.sel-lbl b { display: block; font-size: 12.5px; font-weight: 700; }
+.lbl.lin-lbl { pointer-events: auto; cursor: pointer; padding: 2px 7px; opacity: .92; box-shadow: none; }
+.lbl.lin-lbl b { font-size: 11px; font-weight: 600; }
+.lbl.lin-lbl span { font-size: 9px; }
+.lbl.lin-lbl.up { border-color: var(--accent); } .lbl.lin-lbl.down { border-color: var(--edge-down); }
+.lbl.lin-lbl.up span { color: var(--accent); } .lbl.lin-lbl.down span { color: var(--edge-down); }
+.lbl.lin-lbl:hover { opacity: 1; z-index: 2; }
+.lbl.sel-lbl span { display: block; font-size: 10px; color: rgba(190,225,255,.75); text-transform: uppercase; letter-spacing: .08em; }
+:root[data-theme="light"] .lbl.sel-lbl { color: #1b1f24; background: rgba(255,255,255,.95); border-color: #1f5fa8; box-shadow: 0 2px 8px rgba(20,40,70,.18); }
+:root[data-theme="light"] .lbl.sel-lbl span { color: #5f6b7a; }
+.station .st-fs { padding: 3px 8px; margin-right: -4px; }
+.station .st-titles :is(h3, p) { overflow-wrap: anywhere; }
+.station .st-head > button { flex: none; }
+.station .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.station .chip { cursor: pointer; }
+.st-nodecard .specs { margin: 0; }
+/* full-screen view (⛶ on a card, or F): the 3D view fills the screen, the card grows */
+#view:fullscreen { background: var(--bg); }
+#view:fullscreen .station { width: min(460px, 34%); }
+#view:fullscreen .station.ops { width: min(820px, 50%); }
+
+/* Death Star card (alerts & notifications) */
+.station.alerts { width: min(520px, calc(100% - 32px)); }
+#view:fullscreen .station.alerts { width: min(760px, 48%); }
+.alist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.al { padding: 10px 12px; border: 1px solid var(--hud-dim); border-left: 3px solid var(--sev, var(--hud)); background: rgba(99,212,255,.04); }
+.al.critical { --sev: var(--st-failed); } .al.warning { --sev: var(--st-stale); } .al.resolved { --sev: var(--st-success); opacity: .8; }
+.al.acked { opacity: .7; }
+.al .top { display: flex; gap: 8px; align-items: baseline; }
+.al .sev { font: 700 9.5px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; padding: 1px 5px; border: 1px solid var(--sev); color: var(--sev); flex: none; }
+.al .ttl { flex: 1; min-width: 0; font-weight: 600; font-size: 12.5px; overflow-wrap: anywhere; }
+.al .when { flex: none; font: 10.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hud-muted); }
+.al .det { margin-top: 5px; font-size: 11.5px; color: var(--hud-muted); overflow-wrap: anywhere; }
+.al .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.al .acts button, .al .acts .btn { padding: 3px 9px; font-size: 10.5px; }
+.al .ntf { margin-top: 6px; font-size: 10.5px; color: var(--hud-muted); }
+.ch { padding: 12px; border: 1px solid var(--hud-dim); display: grid; gap: 8px; }
+.ch .top { display: flex; gap: 10px; align-items: center; }
+.ch .top b { flex: 1; font-size: 13px; }
+.ch ol { margin: 0; padding-left: 18px; font-size: 11.5px; display: grid; gap: 5px; color: var(--hud-text); overflow-wrap: anywhere; }
+.ch code, .al code { font-size: 10.5px; }
+.quiet { text-align: center; padding: 22px 8px; color: var(--hud-muted); font-size: 12px; }
+.quiet b { display: block; font-size: 15px; color: #3ddc84; margin-bottom: 4px; letter-spacing: .06em; }
+.lbl.ds-lbl b { color: #ff8a8a; }
+.lbl.ds-lbl.quiet b { color: #9fe6ff; }
+:root[data-theme="light"] .al { background: #fbfcfd; border-color: #e3e8ee; border-left-color: var(--sev, #1f5fa8); }
+:root[data-theme="light"] .ch { border-color: #e3e8ee; }
+:root[data-theme="light"] .lbl.ds-lbl b { color: #b42318; }
+:root[data-theme="light"] .lbl.ds-lbl.quiet b { color: #1f5fa8; }
+:root[data-theme="light"] .quiet b { color: #0b7d33; }
+@media (max-width: 900px) { .station.alerts { width: auto; } }
+
+/* Collapsible side panel */
+main { transition: grid-template-columns .28s ease; }
+body.pane-collapsed main { grid-template-columns: 1fr 0px; }
+body.pane-collapsed main > aside { visibility: hidden; overflow: hidden; border: 0; box-shadow: none; }
+.tabs .collapse { flex: none; padding: 10px 12px; color: var(--text-muted); }
+.tabs .collapse:hover { color: var(--text-primary); }
+#paneHandle {
+  display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4;
+  writing-mode: vertical-rl; padding: 12px 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+}
+body.pane-collapsed #paneHandle { display: block; }
+body.pane-collapsed #station:not([hidden]) ~ #paneHandle { display: none; }
+@media (max-width: 900px) { body.pane-collapsed main > aside { display: none; } }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<header>
+  <h1>◉ The Watcher <span class="sub">lakehouse job tracker</span><span class="demo-chip" title="This copy runs on simulated data generated in your browser: an invented shop, invented tables, invented runs.">demo · simulated data</span></h1>
+  <span class="live" id="live"><i></i><span>connecting…</span></span>
+  <span class="scope" id="scope">Showing <b>latest status</b> of every node</span>
+  <span class="scope" id="layerChip"></span>
+  <span class="spacer"></span>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Find model…" aria-label="Find model">
+    <button id="errOnly" aria-pressed="false" title="Show only failing tables (E)">⚠ Errors <b id="errCount">0</b></button>
+    <span class="seg" role="group" aria-label="Camera">
+      <button id="vDefault" title="Default view (R)">⟲ Default view</button>
+      <button id="vTop" title="Top view (T)">Top</button>
+      <button id="vSide" title="Side view (S)">Side</button>
+    </span>
+    <button id="resetHubs" title="Put the Airflow, dbt and Trino logos back in their default places">⌖ Reset logos</button>
+    <button id="spin" aria-pressed="true" title="Pause / resume orbit motion (Space)">Motion</button>
+    <button id="canvasMode" aria-pressed="false" title="Lineage canvas: every table and dependency on a flat 2D canvas, click one to trace its upstream and downstream (C)">⧉ Canvas</button>
+    <a class="btn" href="2d.html" title="Flat 2D view">2D</a>
+    <button id="paneToggle" aria-pressed="true" title="Show / hide the side panel (P)">☰ Panel</button>
+    <button id="theme" title="Toggle light / dark">◐</button>
+  </div>
+</header>
+<main>
+  <section id="stage">
+    <div id="progress" aria-label="Progress per lifecycle layer"></div>
+    <div id="view" aria-label="The Watcher: 3D lakehouse orbit. The Airflow pinwheel at the center dispatches jobs through the dbt station into the Trino core, which writes the tables orbiting it.">
+      <div id="labels"></div>
+      <div id="ticker" aria-live="polite"></div>
+      <div id="help">Drag to rotate · scroll / pinch to zoom · right-drag to pan<br>Drag a logo to move it · double-click to fly to it · <b>R</b> default view<br>Double-click anything to spotlight it (the view follows it) · <b>F</b> full screen<br>Double-click the <b>Ops station</b> for dashboard, report &amp; logs · the <b>Death Star</b> for alerts</div>
+      <aside id="station" class="station" hidden role="dialog" aria-labelledby="stTitle"></aside>
+      <button id="paneHandle" title="Show the side panel (P)">Panel ⟨</button>
+      <div id="nogl">WebGL is not available in this browser. Use the <a href="2d.html">2D view</a>.</div>
+    </div>
+    <div id="legend"></div>
+  </section>
+  <aside>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-pane="runs">Runs</button>
+      <button role="tab" aria-selected="false" data-pane="activity">Job trail</button>
+      <button role="tab" aria-selected="false" data-pane="detail">Detail</button>
+      <button role="tab" aria-selected="false" data-pane="list">Table</button>
+      <button class="collapse" id="paneCollapse" title="Hide the side panel (P)" aria-label="Hide the side panel">⇥</button>
+    </div>
+    <div class="pane" id="pane-runs"></div>
+    <div class="pane" id="pane-activity" hidden></div>
+    <div class="pane" id="pane-detail" hidden><div class="empty">Click a planet to inspect a model.</div></div>
+    <div class="pane" id="pane-list" hidden></div>
+  </aside>
+</main>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "./vendor/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "./vendor/CSS2DRenderer.js";
+import { SVGLoader } from "./vendor/SVGLoader.js";
+import { buildStation } from "./static/station3d.js?v=1";
+import { buildDeathStar } from "./static/deathstar3d.js?v=3";
+import { createLineage } from "./static/lineage2d.js?v=4";
+import { buildBunBun } from "./static/bunbun3d.js?v=1";
+
+// ── Model ───────────────────────────────────────────────────────────────────────────────────
+// Lifecycle rings: raw outermost and lowest, refined data rises toward the Trino core.
+const R = 400;
+const TIERS = [
+  { key: "raw",         label: "Raw / Bronze", r: 0.95 },
+  { key: "silver",      label: "Silver L1",    r: 0.79 },
+  { key: "integration", label: "Integration",  r: 0.645 },
+  { key: "gold_dim",    label: "Gold dims",    r: 0.53 },
+  { key: "gold_fact",   label: "Gold facts",   r: 0.405 },
+  { key: "gold_mart",   label: "Marts",        r: 0.30 },
+  { key: "snapshot",    label: "Snapshots",    r: 0.205 },
+].map((t, i) => ({ ...t, i }));
+// Atom-style orbits: every layer is a smooth ellipse on its own steeply tilted plane (inclination +
+// node angle), with the tilt directions spread around the core so the orbit lines cross in different places.
+const ORBIT = [  // [inclination°, node angle°, minor/major axis ratio, direction]
+  [ 20,   0, .80,  1],
+  [-62,  52, .66, -1],
+  [ 72, 104, .58,  1],
+  [-38, 156, .70, -1],
+  [ 50, 208, .60,  1],
+  [-78, 260, .56, -1],
+  [ 86, 312, .52,  1],
+];
+TIERS.forEach((t, i) => {
+  const [inc, node, squash, dir] = ORBIT[i];
+  Object.assign(t, { squash, dir });
+  t.mat = new THREE.Matrix4().makeRotationY(node * Math.PI / 180)
+    .multiply(new THREE.Matrix4().makeRotationX(inc * Math.PI / 180));
+});
+// point at angle a on tier t's ellipse, in world space
+// o (optional, per planet): its own ellipse inside the layer's band
+//   rs - radius scale, tilt / tiltPh - a small lift off the layer plane
+function orbitPoint(t, a, out = new THREE.Vector3(), o = null) {
+  const rx = t.r * R * (o?.rs ?? 1), rz = rx * t.squash;
+  const y = o ? o.tilt * rx * Math.sin(a - o.tiltPh) : 0;   // own small inclination within the layer
+  out.set(rx * Math.cos(a), y, rz * Math.sin(a));
+  return out.applyMatrix4(t.mat);
+}
+const TIER = Object.fromEntries(TIERS.map(t => [t.key, t]));
+const STATUS = {
+  success: { label: "Success", icon: "✓" }, running: { label: "Running", icon: "▶" },
+  failed: { label: "Failed", icon: "✕" },   stale: { label: "Stale", icon: "!" },
+  skipped: { label: "Skipped", icon: "–" }, idle: { label: "No runs yet", icon: "○" },
+};
+const STATUS_ORDER = ["failed", "running", "stale", "skipped", "success", "idle"];
+const AF_STATE = { success: "success", running: "running", failed: "failed", queued: "idle",
+                   upstream_failed: "failed", skipped: "skipped", up_for_retry: "stale" };
+// Stations of the job path: Airflow task -> dbt model -> Trino query -> table (planet)
+// The stations are draggable logos; positions are remembered per browser.
+// above and outside the planet orbits so they are easy to click (>100 px clear of every orbit in the default view)
+const HUB_DEFAULT = { airflow: [0, 400, 40], dbt: [-520, 280, 220], trino: [520, 280, 220] };
+const HUB_STORE = "watcher-hubs-v2";   // v2: new defaults; positions dragged under the old layout are ignored
+const HUB_POS = Object.fromEntries(Object.entries(HUB_DEFAULT).map(([k, v]) => [k, new THREE.Vector3(...v)]));
+try {
+  const saved = JSON.parse(localStorage.getItem(HUB_STORE) || "{}");
+  for (const [k, v] of Object.entries(saved)) if (HUB_POS[k] && v?.length === 3) HUB_POS[k].set(...v);
+} catch (e) {}
+const CORE = new THREE.Vector3(0, 0, 0);   // the Iceberg lakehouse every table orbits
+const P = key => key === "core" ? CORE : HUB_POS[key];
+const VIEWS = {
+  default: { pos: [125, 680, 1330], target: [0, 30, 0] },
+  top:     { pos: [0, 1550, 2],     target: [0, 0, 0] },
+  side:    { pos: [0, 90, 1350],    target: [0, 40, 0] },
+};
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const color = s => css(`--st-${s}`);
+const ico = s => `<span class="ico ${s}" aria-hidden="true">${STATUS[s]?.icon ?? ""}</span>`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDur = s => s == null ? "—" : s < 60 ? `${(+s).toFixed(1)}s` : s < 3600 ? `${Math.floor(s / 60)}m ${Math.round(s % 60)}s` : `${Math.floor(s / 3600)}h ${Math.round(s % 3600 / 60)}m`;
+const fmtAgo = iso => {
+  if (!iso) return "—";
+  const s = (Date.now() - new Date(iso)) / 1000;
+  return s < 60 ? `${Math.max(0, Math.round(s))}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`;
+};
+const fmtNum = n => n == null ? "—" : Number(n).toLocaleString();
+const fmtCompact = n => n == null ? "—" : Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+const runStatus = st => st === "running" ? "running" : st === "failed" ? "failed" : st === "aborted" ? "skipped" : "success";
+
+let cfg = {}, nodes = [], byId = new Map(), up = new Map(), down = new Map();
+let live = { nodes: {}, dag_runs: [], activity: [], totals: {} };
+let scope = null, selected = null, hovered = null, spinning = true, query = "", firstState = true;
+let errOnly = false;   // "Errors" button: only failing tables stay lit
+let lineage = null;    // the 2D lineage canvas (lineage2d.js), created at boot
+let lastHidden3d = 0;
+let layer = null;   // tier key when the orbit is filtered to one layer
+let prevRuns = new Map();
+let rot = 0;
+
+// ── Layout (same barycentric ordering as the 2D view) ───────────────────────────────────────
+function angleDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
+function layout(topo) {
+  nodes = topo.nodes.map(n => ({ ...n }));
+  byId = new Map(nodes.map(n => [n.id, n]));
+  for (const n of nodes) { up.set(n.id, []); down.set(n.id, []); }
+  for (const e of topo.edges) {
+    if (!byId.has(e.src) || !byId.has(e.dst)) continue;
+    up.get(e.dst).push(e.src); down.get(e.src).push(e.dst);
+  }
+  const hash = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0) / 4294967296; };
+  for (const t of TIERS) {
+    const ring = nodes.filter(n => n.tier === t.key);
+    for (const n of ring) {
+      const ups = up.get(n.id).map(id => byId.get(id)).filter(u => u.theta != null);
+      if (t.key === "raw" || !ups.length) n.want = hash(n.name) * 2 * Math.PI;
+      else {
+        const x = ups.reduce((a, u) => a + Math.cos(u.theta), 0), y = ups.reduce((a, u) => a + Math.sin(u.theta), 0);
+        n.want = Math.atan2(y, x);
+      }
+    }
+    if (t.key === "raw") ring.sort((a, b) => a.name.localeCompare(b.name));
+    else ring.sort((a, b) => ((a.want + 2 * Math.PI) % (2 * Math.PI)) - ((b.want + 2 * Math.PI) % (2 * Math.PI)));
+    const offset = t.key === "raw" || !ring.length ? 0 :
+      ring.reduce((a, n, i) => a + angleDiff(n.want, (i / ring.length) * 2 * Math.PI), 0) / ring.length;
+    ring.forEach((n, i) => { n.theta = (i / ring.length) * 2 * Math.PI + offset; n.ti = t.i; });
+  }
+  for (const n of nodes) {
+    n.radius = n.radiusTarget = sizeFor(null, n.kind);   // grows to its row-count size once runs arrive
+    // irregular motion: each planet has its own pace, plus a slow surge / lag around it
+    n.mul = 0.45 + hash(n.id) * 1.3;
+    n.wob = 0.15 + hash(n.id + "w") * 0.35;
+    n.wobF = 0.2 + hash(n.id + "f") * 0.5;
+    n.phase = hash(n.id + "p") * Math.PI * 2;
+    // its own slightly larger / smaller, slightly tilted ellipse inside the layer's band (the drawn line is the layer's guide)
+    n.orb = {
+      rs: 1 + (hash(n.id + "r") - 0.5) * 0.16,
+      tilt: (hash(n.id + "t") - 0.5) * 0.22,
+      tiltPh: hash(n.id + "q") * Math.PI * 2,
+    };
+  }
+}
+const speed = ti => 0.012 + (TIERS.length - ti) * 0.006;
+function planetPos(n, out = new THREE.Vector3()) {
+  const t = TIERS[n.ti], v = speed(n.ti) * n.mul;
+  const wob = Math.min(n.wob, 0.8 * v / n.wobF);   // surge/lag, but never reverse
+  const a = n.theta + t.dir * (rot * v + wob * Math.sin(rot * n.wobF + n.phase));
+  return orbitPoint(t, a, out, n.orb);
+}
+
+// ── Status ──────────────────────────────────────────────────────────────────────────────────
+function nodeRun(id) { return scope ? scope.nodeRuns.get(id) || null : live.nodes[id] || null; }
+function statusOf(id) {
+  const r = nodeRun(id);
+  if (!r) return "idle";
+  if (r.state === "running") return "running";
+  if (r.state === "failed") return "failed";
+  if (r.state === "aborted") return "skipped";
+  if (!scope && r.ended_at && (Date.now() - new Date(r.ended_at)) / 3.6e6 > (cfg.stale_hours || 26)) return "stale";
+  return "success";
+}
+
+// ── Three.js scene ──────────────────────────────────────────────────────────────────────────
+const view = document.getElementById("view");
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" }); }
+catch (e) { document.getElementById("nogl").style.display = "grid"; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+view.prepend(renderer.domElement);
+const labelRenderer = new CSS2DRenderer({ element: document.getElementById("labels") });
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 8000);
+camera.position.set(...VIEWS.default.pos);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(...VIEWS.default.target);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 40; controls.maxDistance = 3200;
+controls.zoomToCursor = true;
+controls.update();
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const sunLight = new THREE.PointLight(0xffd29a, 2.2, 0, 0); scene.add(sunLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(300, 600, 400); scene.add(dirLight);
+
+// textures drawn on canvas: soft glow, solid ring, dashed ring
+function canvasTex(draw, size = 128) {
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  draw(c.getContext("2d"), size);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const glowTex = canvasTex((g, s) => {
+  const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, s, s);
+});
+const ringTex = dashed => canvasTex((g, s) => {
+  g.strokeStyle = "#fff"; g.lineWidth = s * 0.07;
+  if (dashed) g.setLineDash([s * 0.12, s * 0.08]);
+  g.beginPath(); g.arc(s / 2, s / 2, s * 0.42, 0, Math.PI * 2); g.stroke();
+});
+const ringSolidTex = ringTex(false), ringDashTex = ringTex(true);
+
+// starfield (dark theme only)
+const stars = (() => {
+  const g = new THREE.BufferGeometry(), p = [];
+  for (let i = 0; i < 1800; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(2600 + Math.random() * 1600);
+    p.push(v.x, v.y, v.z);
+  }
+  g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9aa0b4, size: 2.2, sizeAttenuation: false, transparent: true, opacity: .7 }));
+})();
+scene.add(stars);
+
+function label(html, cls = "lbl") {
+  const d = document.createElement("div"); d.className = cls; d.innerHTML = html;
+  return new CSS2DObject(d);
+}
+
+// rings + ring labels
+// orbit guides are thin tubes: WebGL draws GL lines 1px wide whatever linewidth you ask for
+// Neon orbit guides: a thin bright core tube wrapped in two soft glow tubes that breathe slowly.
+// Additive blending in dark mode; normal blending in light mode, where additive would vanish.
+const ringMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending });
+const ringGlowMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: .28, depthWrite: false, blending: THREE.AdditiveBlending });
+const NEON = { core: [.48, .05], inner: [.21, .02], outer: [.075, .008] };   // [on, faded] opacity (~50% look)
+const ringLabels = [];
+const leaderMat = new THREE.LineBasicMaterial({ transparent: true, opacity: .9 });
+const leaderDotMat = new THREE.MeshBasicMaterial({ transparent: true });
+for (const t of TIERS) {
+  const path = new THREE.CatmullRomCurve3(Array.from({ length: 160 }, (_, i) => orbitPoint(t, i / 160 * Math.PI * 2)), true);   // smooth closed ellipse
+  t.guideMat = ringMat.clone(); t.leadMat = leaderMat.clone(); t.dotMat = leaderDotMat.clone();
+  t.glowMat = ringGlowMat.clone(); t.glow2Mat = ringGlowMat.clone(); t.on = true;
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(path, 320, 0.55, 6, true), t.guideMat));   // bright core
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(path, 320, 1.7, 8, true), t.glowMat));     // inner glow
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(path, 320, 4.6, 8, true), t.glow2Mat));    // outer haze
+  // Labels sit on the orbit line itself. Each layer's label goes on a different side of the
+  // system (spread around the circle), so the small inner rings don't pile their labels up.
+  const LABEL_SIDE = [140, 60, 205, 335, 165, 15, 270];   // degrees around the core, per layer
+  const ph = LABEL_SIDE[t.i] * Math.PI / 180, dir = new THREE.Vector3(Math.cos(ph), 0, Math.sin(ph)), p = new THREE.Vector3();
+  let best = 0, bestDot = -Infinity;
+  for (let a = 0; a < Math.PI * 2; a += 0.01) {
+    orbitPoint(t, a, p); const d = p.x * dir.x + p.z * dir.z;
+    if (d > bestDot) { bestDot = d; best = a; }
+  }
+  const anchor = orbitPoint(t, best); anchor.y += 12;
+  const l = label("", "lbl ring-lbl"); l.position.copy(anchor);
+  l.element.title = `Show only ${t.label} (click again to show all)`;
+  l.element.addEventListener("click", ev => { if (pick(ev)?.hub) return; setLayer(t.key); });   // over a logo: the logo wins
+  l.element.addEventListener("dblclick", ev => onDoubleClick(ev));   // a label over a logo must not swallow its double-click
+  t.labelObj = l;
+  scene.add(l); ringLabels.push([t, l]);
+}
+
+// hubs: Airflow / dbt / Trino logos (simple-icons SVG paths, CC0) extruded into 3D
+const hubs = {};
+const svgLoader = new SVGLoader();
+const svg = name => fetch(`./vendor/${name}.svg`).then(r => r.text()).then(t => svgLoader.parse(t));
+// Airflow and Trino use their full-colour logos (dashboard-icons / trino.io) instead of the simple-icons outlines
+const [svgAirflow, svgDbt] = await Promise.all([svg("apache-airflow-color"), svg("dbt")]);
+function extrude(shape, color, depth, opacity = 1) {
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: .35, bevelSize: .2, bevelSegments: 2, curveSegments: 14 });
+  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3, roughness: .4, metalness: .15, side: THREE.DoubleSide,
+    transparent: opacity < 1, opacity, depthWrite: opacity >= 1 }));
+}
+function finishLogo(meshes, size, vb = 24) {
+  const g = new THREE.Group(); meshes.forEach(m => g.add(m));
+  const box = new THREE.Box3().setFromObject(g), mid = box.getCenter(new THREE.Vector3());
+  for (const m of meshes) m.geometry.translate(-mid.x, -mid.y, -mid.z);   // spin / sway around the logo's centre
+  const sc = size / vb; g.scale.set(sc, -sc, sc);                        // SVG viewBox units, y down -> y up
+  return { g, meshes };
+}
+function logo(data, color, size) {
+  const meshes = [];
+  for (const path of data.paths) for (const shape of SVGLoader.createShapes(path)) meshes.push(extrude(shape, color, 2.4));
+  return finishLogo(meshes, size);
+}
+// Full-colour logo: every SVG path keeps its own fill (and opacity); layer(i, hex) -> [z, depth] in viewBox units
+function colorLogo(data, size, vb, layer) {
+  const meshes = [];
+  data.paths.forEach((path, i) => {
+    const hex = "#" + path.color.getHexString(), st = path.userData.style;
+    const [z, depth] = layer(i, hex), opacity = (st.opacity ?? 1) * (st.fillOpacity ?? 1);
+    for (const shape of SVGLoader.createShapes(path)) {
+      const m = extrude(shape, hex, depth, opacity); m.geometry.translate(0, 0, z); meshes.push(m);
+    }
+  });
+  return finishLogo(meshes, size, vb);
+}
+// Airflow: 4 blades, 4 lighter folds and a centre pin. Blades form the base; folds sit raised on top like
+// folded paper; the pin sits above everything.
+const AF_BLADES = new Set(["#017cee", "#00ad46", "#00c7d4", "#e43921"]);
+const airflowLogo = (data, size) => colorLogo(data, size, 128, (i, hex) =>
+  AF_BLADES.has(hex) ? [i * .4, 9]          // small per-blade step avoids z-fighting where blades meet
+  : hex === "#4a4848" ? [0, 20] : [6, 7]);  // pin : fold
+function makeHub(key, lg, labelAt) {
+  const g = new THREE.Group(), inner = new THREE.Group();
+  g.position.copy(HUB_POS[key]); inner.add(lg.g); g.add(inner);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: .55 }));
+  glow.position.z = -6; g.add(glow);
+  const l = label("", "lbl hub"); l.position.set(...labelAt); g.add(l);
+  scene.add(g);
+  for (const m of lg.meshes) m.userData.hub = key;
+  hubs[key] = { group: g, inner, glow, label: l, flash: 0, key, parts: lg.meshes, spin: 0 };
+}
+// Sparks: a small additive particle pool in a hub's face plane. spawn(sp, i) sets x/y/vx/vy/col of a new
+// particle; move(sp, i, dt) advances it (default: straight line).
+function makeSparks(parent, N, decayMs) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 3.2, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  parent.add(pts);
+  const f = () => new Float32Array(N);
+  return { pts, N, decayMs, x: f(), y: f(), vx: f(), vy: f(), a: f(), r: f(), life: f(), col: Array.from({ length: N }, () => new THREE.Color()), next: 0, carry: 0 };
+}
+function stepSparks(sp, dt, perSec, spawn, move = (sp, i, dt) => { sp.x[i] += sp.vx[i] * dt / 1000; sp.y[i] += sp.vy[i] * dt / 1000; }) {
+  const pos = sp.pts.geometry.attributes.position, colA = sp.pts.geometry.attributes.color;
+  sp.carry += perSec * dt / 1000;
+  while (sp.carry >= 1) { sp.carry -= 1; const i = sp.next; sp.next = (i + 1) % sp.N; sp.life[i] = 1; spawn(sp, i); }
+  for (let i = 0; i < sp.N; i++) {
+    if (sp.life[i] <= 0) { colA.setXYZ(i, 0, 0, 0); continue; }
+    sp.life[i] = Math.max(0, sp.life[i] - dt / sp.decayMs);
+    move(sp, i, dt);
+    pos.setXYZ(i, sp.x[i], sp.y[i], 4);
+    const k = sp.life[i] * sp.life[i]; colA.setXYZ(i, sp.col[i].r * k, sp.col[i].g * k, sp.col[i].b * k);
+  }
+  pos.needsUpdate = true; colA.needsUpdate = true;
+}
+const glowBase = () => document.documentElement.dataset.theme !== "light" ? .55 : .25;
+// Airflow keeps the real logo's colours so the spin reads like the real pinwheel
+const afLogo = airflowLogo(svgAirflow, 80);
+makeHub("airflow", afLogo, [0, 58, 0]);
+// Spin effects: motion-blur ghosts trailing the blades + sparks flung off the blade tips (both fade in with speed)
+const afFx = { ghosts: [], sparks: makeSparks(hubs.airflow.group, 60, 900) };
+for (let k = 1; k <= 3; k++) {
+  const ghost = new THREE.Group(), copy = afLogo.g.clone();
+  copy.traverse(o => { if (o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: o.material.color, transparent: true, opacity: 0, depthWrite: false }); });
+  ghost.add(copy); hubs.airflow.inner.add(ghost); afFx.ghosts.push({ ghost, copy, k });
+}
+// blade tips in the hub's face plane (SVG corners, y flipped): red top-left, cyan top-right, green bottom-right, blue bottom-left
+const AF_TIPS = [[3 * Math.PI / 4, "#e43921"], [Math.PI / 4, "#00c7d4"], [-Math.PI / 4, "#00ad46"], [-3 * Math.PI / 4, "#017cee"]]
+  .map(([a, c]) => [a, new THREE.Color(c)]);
+function stepAirflowFx(dt) {
+  const af = hubs.airflow, s = Math.min(1, af.spin / 5.5);
+  for (const m of af.parts) m.material.emissiveIntensity = .3 + .55 * s;                 // blades light up as they spin
+  af.glow.material.opacity = glowBase() + .3 * s;
+  for (const { ghost, copy, k } of afFx.ghosts) {
+    ghost.visible = s > .02;
+    ghost.rotation.z = k * .09 * s;                                                     // trail behind the (clockwise) spin
+    copy.traverse(o => { if (o.isMesh) o.material.opacity = s * .3 / k; });
+  }
+  stepSparks(afFx.sparks, dt, s * s * 70, (sp, i) => {                                   // emission rate grows with speed
+    const [a, c] = AF_TIPS[(Math.random() * 4) | 0];
+    sp.a[i] = af.inner.rotation.z + a + (Math.random() - .5) * .3; sp.r[i] = 48 + Math.random() * 6; sp.col[i].copy(c);
+  }, (sp, i, dt) => {
+    sp.a[i] -= af.spin * .55 * dt / 1000; sp.r[i] += 34 * dt / 1000;                     // swirl along the spin, drift outward
+    sp.x[i] = sp.r[i] * Math.cos(sp.a[i]); sp.y[i] = sp.r[i] * Math.sin(sp.a[i]);
+  });
+}
+makeHub("dbt", logo(svgDbt, "#ff694b", 62), [0, -48, 0]);
+// Trino: Commander Bun Bun as a full 3D astronaut (model + animation in bunbun3d.js). Idle: floats, waves,
+// twitches its ears. Models running: jetpack on, SQL scrolling on the datapad, and query bolts fired from the
+// transmitter at the table being written.
+const bunbun = buildBunBun(THREE, { glowTex });
+makeHub("trino", { g: bunbun.root, meshes: bunbun.parts }, [0, -52, 0]);
+hubs.trino.model = bunbun; hubs.trino.work = 0;
+function stepTrinoFx(dt, now, busy) {
+  const tr = hubs.trino;
+  tr.work += ((busy ? 1 : 0) - tr.work) * Math.min(1, dt / 600);
+  tr.glow.material.opacity = glowBase() + .25 * tr.work * (.8 + .2 * Math.sin(now / 160));
+  bunbun.update(dt, now, { work: tr.work, target: nodes.find(n => n.status === "running")?.pos ?? null });
+}
+// Iceberg core (smooth sun)
+const core = new THREE.Mesh(new THREE.SphereGeometry(30, 48, 32), new THREE.MeshStandardMaterial({ roughness: .5 }));
+const coreGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: .55 }));
+coreGlow.scale.setScalar(150);
+const coreLabel = label("", "lbl hub"); coreLabel.position.set(0, -48, 0);
+core.add(coreLabel); core.position.copy(CORE); coreGlow.position.copy(CORE); scene.add(core, coreGlow);
+core.userData.hub = "core";
+const hubMeshes = [...hubs.airflow.parts, ...hubs.dbt.parts, ...hubs.trino.parts, core];
+const HUB_GLOW = { trino: 120, airflow: 130, dbt: 110 };
+
+// ── Ops station: dashboard / report / logs, on its own outer orbit (model in station3d.js) ─────
+const station = buildStation(THREE, { glowTex });
+station.root.scale.setScalar(1.25);
+scene.add(station.root);
+// The Ops station orbits the Death Star (upper right, far from the planets): radius 300 keeps its arrays
+// ≥ 250 units from the Death Star's centre and > 300 from every planet orbit, fully on screen by default.
+const DS_POS = new THREE.Vector3(600, 270, -640);
+const ST_ORBIT = { r: 300, squash: .85, period: 300000 };   // one lap around the Death Star: ~5 minutes
+const stOrbitM = new THREE.Matrix4().makeRotationY(.3).multiply(new THREE.Matrix4().makeRotationX(.35));
+const stationOrbitPoint = (a, out = new THREE.Vector3()) =>
+  out.set(ST_ORBIT.r * Math.cos(a), 0, ST_ORBIT.r * ST_ORBIT.squash * Math.sin(a)).applyMatrix4(stOrbitM).add(DS_POS);
+let stAngle = Math.PI;   // starts on the left of the Death Star
+const stOrbitLine = new THREE.LineLoop(
+  new THREE.BufferGeometry().setFromPoints(Array.from({ length: 240 }, (_, i) => stationOrbitPoint(i / 240 * Math.PI * 2))),
+  new THREE.LineDashedMaterial({ color: 0x63d4ff, dashSize: 10, gapSize: 12, transparent: true, opacity: .32, depthWrite: false }));
+stOrbitLine.computeLineDistances(); scene.add(stOrbitLine);
+const stationLabel = label(`<b>Ops station</b><span>dashboard · report · logs</span>`, "lbl hub station-lbl");
+stationLabel.position.set(0, 92, 0); station.root.add(stationLabel);
+const ST_FWD = new THREE.Vector3(0, 0, 1), stAhead = new THREE.Vector3();
+function placeStation() {
+  const p = stationOrbitPoint(stAngle, station.root.position);
+  stAhead.copy(stationOrbitPoint(stAngle + .01)).sub(p).normalize();
+  station.root.quaternion.setFromUnitVectors(ST_FWD, stAhead);   // modules point along the direction of travel
+}
+placeStation();
+function flyToStation(part) {
+  const a = station.anchors[part] || station.anchors.dashboard;
+  const p = station.body.localToWorld(a.clone());
+  const out = station.root.position.clone().sub(DS_POS).setY(0).normalize();   // from outside its orbit: the Death Star is the backdrop
+  const cam = p.clone().add(out.multiplyScalar(300)).add(new THREE.Vector3(0, 95, 0));   // the lakehouse is the backdrop
+  const right = new THREE.Vector3().crossVectors(p.clone().sub(cam).normalize(), camera.up).normalize().multiplyScalar(125);
+  flyTo(cam.add(right).toArray(), p.clone().add(right).toArray(), 1000);   // station centre-left, card on the right
+}
+
+// ── Death Star: alerts & notifications (model in deathstar3d.js) ────────────────────────────
+const deathStar = buildDeathStar(THREE, { glowTex });
+deathStar.root.position.copy(DS_POS); scene.add(deathStar.root);
+const dsLabel = label(`<b>Death Star</b><span>alerts · scanning…</span>`, "lbl hub ds-lbl quiet");
+dsLabel.position.copy(DS_POS).add(new THREE.Vector3(0, deathStar.radius + 24, 0)); scene.add(dsLabel);
+// what the Death Star does: level from unacknowledged firing alerts; it fires at the first failing critical table
+let alertState = { level: "ok", target: null, counts: {} };
+function setAlertState(d) {
+  const open = d.alerts.filter(a => a.state === "firing" && !a.acked_at);
+  const crit = open.filter(a => a.severity === "critical"), warn = open.filter(a => a.severity === "warning");
+  const tgt = crit.find(a => a.node_id && byId.get(a.node_id));
+  alertState = { level: crit.length ? "critical" : warn.length ? "warning" : "ok", target: tgt ? byId.get(tgt.node_id) : null, counts: d.counts };
+  const c = d.counts;
+  dsLabel.element.classList.toggle("quiet", !c.firing);
+  dsLabel.element.innerHTML = `<b>Death Star</b><span>${c.firing ? `${c.critical} critical · ${c.warning} warning${c.acked ? ` · ${c.acked} acked` : ""}` : "alerts · all quiet"}</span>`;
+}
+async function refreshAlerts() {
+  try { const r = await fetch("api/alerts?state=firing&limit=100"); if (r.ok) setAlertState(await r.json()); } catch (e) {}
+}
+function flyToDeathStar() {
+  const p = DS_POS.clone(), inward = CORE.clone().sub(p).setY(0).normalize();
+  const side = new THREE.Vector3().crossVectors(inward, camera.up).normalize();
+  const cam = p.clone().addScaledVector(inward, 190).addScaledVector(side, 150).add(new THREE.Vector3(0, 70, 0));
+  const right = new THREE.Vector3().crossVectors(p.clone().sub(cam).normalize(), camera.up).normalize().multiplyScalar(85);
+  flyTo(cam.add(right).toArray(), p.add(right).toArray(), 1000);
+}
+
+// the static job route: Airflow -> dbt -> Trino (dashed guide)
+function arc(a, b, lift = 60) {
+  const mid = a.clone().add(b).multiplyScalar(0.5); mid.y += lift + a.distanceTo(b) * 0.12;
+  return new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
+}
+const routeMat = new THREE.LineDashedMaterial({ dashSize: 8, gapSize: 7, transparent: true, opacity: .55 });
+const routes = [["airflow", "dbt"], ["dbt", "trino"], ["trino", "core"]].map(([a, b]) => {
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 61 }, () => new THREE.Vector3())), routeMat);
+  l.frustumCulled = false; scene.add(l); return { a, b, l };
+});
+function updateRoutes() {
+  for (const { a, b, l } of routes) {
+    const attr = l.geometry.attributes.position;
+    arc(P(a), P(b)).getPoints(60).forEach((p, k) => attr.setXYZ(k, p.x, p.y, p.z));
+    attr.needsUpdate = true; l.computeLineDistances();
+  }
+}
+updateRoutes();
+
+// planets: AllSpark-style energy cores. A near-round metal polyhedron (flat facets catch the light),
+// a coarser neon cage and a soft aura, in the layer's medallion metal (bronze / silver / gold); cores buzz like neon and crackle with sparks (running
+// ones much more). Status rides on the halo (running), rings (failed / stale / skipped) and a tint.
+const coreGeo = new THREE.IcosahedronGeometry(1, 2);                                  // 320 facets: almost a circle
+const coreCageGeo = new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.04, 1)); // neon cage around it
+// medallion metals: Raw = bronze, Silver L1 + Integration = silver, Gold dims / facts / marts + Snapshots = gold.
+// body / glow / edge for the dark theme; lightEdge / lightAura replace the additive neon on the light theme.
+const METAL = {
+  bronze: { label: "Bronze", body: new THREE.Color("#6b3a17"), glow: new THREE.Color("#c8702a"), edge: new THREE.Color("#ffb878"), lightEdge: "#8a4a17", lightAura: "#e3a874" },
+  silver: { label: "Silver", body: new THREE.Color("#5d6672"), glow: new THREE.Color("#9fb0c4"), edge: new THREE.Color("#eef4ff"), lightEdge: "#5b6470", lightAura: "#c3cbd6" },
+  gold:   { label: "Gold",   body: new THREE.Color("#7a5800"), glow: new THREE.Color("#f0b000"), edge: new THREE.Color("#ffe58a"), lightEdge: "#9a6f00", lightAura: "#f1d26a" },
+};
+const TIER_METAL = { raw: "bronze", silver: "silver", integration: "silver", gold_dim: "gold", gold_fact: "gold", gold_mart: "gold", snapshot: "gold" };
+const metalOf = n => METAL[TIER_METAL[n.tier]] || METAL.silver;
+const planets = [];
+const hashStr = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0) / 4294967296; };
+function buildPlanets() {
+  for (const n of nodes) {
+    const mt = metalOf(n);
+    const m = new THREE.Mesh(coreGeo, new THREE.MeshStandardMaterial({ color: mt.body, emissive: mt.glow, emissiveIntensity: .45, metalness: .7, roughness: .3, flatShading: true, transparent: true }));
+    const cage = new THREE.LineSegments(coreCageGeo, new THREE.LineBasicMaterial({ color: mt.edge, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: mt.glow, transparent: true, opacity: .5, depthWrite: false, blending: THREE.AdditiveBlending }));
+    aura.scale.setScalar(3.2);
+    m.add(cage, aura);
+    m.rotation.set(hashStr(n.id + "tilt") * Math.PI, hashStr(n.id + "rot") * 6, 0);
+    m.scale.setScalar(n.radius); m.userData.node = n;
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    halo.visible = false;
+    const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringSolidTex, transparent: true, depthWrite: false }));
+    ring.visible = false;
+    scene.add(m, halo, ring);
+    n.mesh = m; n.cage = cage; n.aura = aura; n.halo = halo; n.ring = ring; n.pulse = 0; n.pos = new THREE.Vector3();
+    n.buzz = hashStr(n.id + "buzz") * 100; n.energy = 1; n.dim = false;
+    planets.push(m);
+  }
+}
+// Sparks: short jagged electric arcs jumping off a core's surface, re-jittered every frame so they crackle.
+const ARCS = 96, ARC_SEG = 5;
+const arcGeo = new THREE.BufferGeometry();
+arcGeo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(ARCS * ARC_SEG * 2 * 3), 3));
+arcGeo.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(ARCS * ARC_SEG * 2 * 3), 3));
+const arcLines = new THREE.LineSegments(arcGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+arcLines.frustumCulled = false; scene.add(arcLines);
+const arcs = Array.from({ length: ARCS }, () => {
+  // each arc also has a bright flash at its tip, since WebGL lines are only 1px wide
+  const tip = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: "#e6fbff", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  tip.visible = false; scene.add(tip);
+  return { n: null, life: 0, ttl: 1, dir: new THREE.Vector3(), len: 2, tip };
+});
+const ARC_COL = [new THREE.Color("#ffffff"), new THREE.Color("#9ff0ff"), new THREE.Color("#4fb4ff")];
+let arcNext = 0, arcCarry = 0;
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _u = new THREE.Vector3(), _v = new THREE.Vector3();
+function stepArcs(dt) {
+  const live = nodes.filter(n => n.mesh && !n.dim && n.status !== "idle");
+  const running = live.filter(n => n.status === "running");
+  arcCarry += (running.length * 8 + live.length * .12) * dt / 1000;   // running cores crackle a lot, the rest now and then
+  while (arcCarry >= 1 && live.length) {
+    arcCarry -= 1;
+    const pool = running.length && Math.random() < .85 ? running : live;
+    const a = arcs[arcNext]; arcNext = (arcNext + 1) % ARCS;
+    a.n = pool[(Math.random() * pool.length) | 0]; a.ttl = a.life = 120 + Math.random() * 180;
+    a.dir.randomDirection(); a.len = 1.9 + Math.random() * 1.4;
+  }
+  arcCarry = Math.min(arcCarry, 4);
+  const pos = arcGeo.attributes.position, col = arcGeo.attributes.color;
+  let v = 0;
+  for (const a of arcs) {
+    if (a.life > 0) a.life -= dt;
+    const on = a.life > 0 && a.n;
+    // two axes perpendicular to the arc for the zig-zag jitter
+    if (on) { _u.set(a.dir.y, -a.dir.x, 0); if (_u.lengthSq() < 1e-4) _u.set(0, a.dir.z, -a.dir.y); _u.normalize(); _v.crossVectors(a.dir, _u); }
+    const r = on ? a.n.radius : 0, k = on ? a.life / a.ttl : 0, c = ARC_COL[(Math.random() * 3) | 0];
+    a.tip.visible = !!on;
+    if (on) {
+      a.tip.position.copy(a.n.pos).addScaledVector(a.dir, r * a.len);
+      a.tip.scale.setScalar(r * (1.8 + Math.random() * 1.2)); a.tip.material.opacity = Math.min(1, k * 1.4) * (.7 + Math.random() * .3);
+    }
+    for (let s = 0; s < ARC_SEG; s++) {
+      for (const e of [s, s + 1]) {
+        if (on) {
+          const t = e / ARC_SEG, j = e === 0 || e === ARC_SEG ? 0 : (Math.random() - .5) * .7 * r;
+          _a.copy(a.n.pos).addScaledVector(a.dir, r * (1 + t * (a.len - 1))).addScaledVector(_u, j).addScaledVector(_v, (Math.random() - .5) * .7 * r);
+          pos.setXYZ(v, _a.x, _a.y, _a.z); col.setXYZ(v, c.r * k, c.g * k, c.b * k);
+        } else col.setXYZ(v, 0, 0, 0);
+        v++;
+      }
+    }
+  }
+  pos.needsUpdate = true; col.needsUpdate = true;
+}
+
+// ── Packets: jobs moving Airflow -> dbt -> Trino -> table -> back to Airflow ────────────────
+const packets = [];
+const sprPool = [];
+function sprite(col, scale) {
+  const s = sprPool.pop() || new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  s.material.color.set(col); s.material.opacity = 1; s.scale.setScalar(scale); s.visible = true; scene.add(s); return s;
+}
+function release(s) { s.visible = false; scene.remove(s); sprPool.push(s); }
+// stops: array of () => Vector3 (planets move, so endpoints are evaluated every frame)
+function launch(stops, col, { legMs = 850, onLeg } = {}) {
+  if (packets.length > 260) return;
+  const head = sprite(col, 16), trail = Array.from({ length: 6 }, (_, i) => sprite(col, 11 - i * 1.4));
+  trail.forEach((s, i) => s.material.opacity = 0.55 - i * 0.08);
+  packets.push({ stops, col, legMs, onLeg, leg: 0, t0: performance.now(), head, trail, hist: [] });
+}
+function stepPackets(now) {
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const p = packets[i];
+    let t = (now - p.t0) / p.legMs;
+    if (t >= 1) {
+      p.leg++; p.t0 = now; t = 0;
+      p.onLeg?.(p.leg);          // arrived at stop index p.leg
+      if (p.leg >= p.stops.length - 1) {
+        release(p.head); p.trail.forEach(release); packets.splice(i, 1); continue;
+      }
+    }
+    const a = p.stops[p.leg](), b = p.stops[p.leg + 1]();
+    const e = t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    const pos = arc(a, b, 30).getPoint(e);
+    p.head.position.copy(pos);
+    p.hist.unshift(pos.clone()); if (p.hist.length > 18) p.hist.pop();
+    p.trail.forEach((s, k) => { const h = p.hist[Math.min(p.hist.length - 1, (k + 1) * 3)]; if (h) s.position.copy(h); });
+  }
+}
+const at = key => () => HUB_POS[key];
+const atNode = n => () => n.pos;
+
+// running streams: Trino -> table while a model runs, plus the Airflow -> dbt -> Trino conveyor
+const streamDots = [], conveyor = [];
+function syncStreams(now) {
+  const running = nodes.filter(n => n.status === "running").slice(0, 48);
+  const runCol = color("running");
+  while (streamDots.length < running.length * 3) streamDots.push(sprite(runCol, 7));
+  while (streamDots.length > running.length * 3) release(streamDots.pop());
+  running.forEach((n, k) => {
+    const c = arc(HUB_POS.trino, n.pos, 20);
+    for (let j = 0; j < 3; j++) {
+      const s = streamDots[k * 3 + j], t = ((now / 1100) + j / 3 + k * 0.07) % 1;
+      s.position.copy(c.getPoint(t)); s.material.opacity = 0.3 + 0.7 * t; s.material.color.set(runCol);
+    }
+  });
+  const busy = Math.min(8, running.length + (live.totals?.tasks_running ? 1 : 0));
+  while (conveyor.length < busy * 2) conveyor.push(sprite(runCol, 8));
+  while (conveyor.length > busy * 2) release(conveyor.pop());
+  const c1 = arc(HUB_POS.airflow, HUB_POS.dbt), c2 = arc(HUB_POS.dbt, HUB_POS.trino);
+  conveyor.forEach((s, k) => {
+    const t = ((now / 2600) + k / conveyor.length) % 1;
+    s.position.copy(t < .5 ? c1.getPoint(t * 2) : c2.getPoint(t * 2 - 1));
+    s.material.color.set(runCol); s.material.opacity = .65;
+  });
+}
+
+// lineage lines for the hovered / selected planet
+const lineMats = { up: new THREE.LineBasicMaterial({ transparent: true, opacity: .85 }), down: new THREE.LineBasicMaterial({ transparent: true, opacity: .85 }) };
+const linePool = [];
+let activeLines = [];
+function drawLineage() {
+  activeLines.forEach(l => l.visible = false); activeLines = [];
+  const f = hovered?.node || (selected && byId.get(selected));
+  if (!f) return;
+  const pairs = [...up.get(f.id).map(u => [byId.get(u), f, "up"]), ...down.get(f.id).map(d => [f, byId.get(d), "down"])].slice(0, 120);
+  pairs.forEach(([a, b, kind], i) => {
+    let l = linePool[i];
+    if (!l) {
+      l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 25 }, () => new THREE.Vector3())), lineMats.up);
+      l.frustumCulled = false; scene.add(l); linePool[i] = l;
+    }
+    const pts = arc(a.pos, b.pos, 25).getPoints(24), attr = l.geometry.attributes.position;
+    pts.forEach((p, k) => attr.setXYZ(k, p.x, p.y, p.z)); attr.needsUpdate = true;
+    l.material = lineMats[kind]; l.visible = true; activeLines.push(l);
+  });
+}
+
+// ── Camera presets ──────────────────────────────────────────────────────────────────────────
+let tween = null;
+function flyTo(pos, target, ms = 1000) {
+  tween = { p0: camera.position.clone(), t0v: controls.target.clone(), p1: new THREE.Vector3(...pos), t1: new THREE.Vector3(...target), start: performance.now(), ms };
+}
+const setView = k => flyTo(VIEWS[k].pos, VIEWS[k].target);
+function focusNode(n) {
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const p = n.pos.clone().add(dir.multiplyScalar(140)); p.y = Math.max(p.y, n.pos.y + 45);
+  flyTo(p.toArray(), n.pos.toArray(), 900);
+}
+// fly so a planet sits centre-left with the lakehouse behind it, leaving the right side for its card
+function flyToPlanet(n) {
+  const p = n.pos.clone(), out = p.clone().setY(0);
+  if (out.lengthSq() < 1) out.set(0, 0, 1);
+  out.normalize();
+  const cam = p.clone().add(out.multiplyScalar(125)).add(new THREE.Vector3(0, 50, 0));
+  const right = new THREE.Vector3().crossVectors(p.clone().sub(cam).normalize(), camera.up).normalize().multiplyScalar(40);
+  flyTo(cam.add(right).toArray(), p.add(right).toArray(), 900);
+}
+
+// ── Spotlight: a double-clicked object holds the camera (the view moves with it) and the rest fades ──
+let spot = null, spotFade = 1;           // spot: {kind: "node", n} | {kind: "hub", key} | {kind: "station"}
+const spotLast = new THREE.Vector3(), _sp = new THREE.Vector3(), _sd = new THREE.Vector3();
+const spotPos = (sp, out) => sp.kind === "node" ? out.copy(sp.n.pos) : sp.kind === "station" ? out.copy(station.root.position)
+  : sp.kind === "deathstar" ? out.copy(DS_POS) : out.copy(P(sp.key));
+function setSpot(sp) {
+  spot = sp;
+  if (sp) spotPos(sp, spotLast);
+  document.body.classList.toggle("spotlight", !!sp);
+  document.querySelectorAll("#labels > .spot").forEach(el => el.classList.remove("spot"));
+  if (sp?.kind === "hub") (sp.key === "core" ? coreLabel : hubs[sp.key].label).element.classList.add("spot");
+  if (sp?.kind === "station") stationLabel.element.classList.add("spot");
+  if (sp?.kind === "deathstar") dsLabel.element.classList.add("spot");
+  selLabel.element.classList.add("spot");
+}
+// keep the camera locked on the object: move camera, target and any running fly-in by its motion
+function followSpot() {
+  if (!spot) return;
+  spotPos(spot, _sp); _sd.subVectors(_sp, spotLast); spotLast.copy(_sp);
+  if (_sd.lengthSq() === 0) return;
+  camera.position.add(_sd); controls.target.add(_sd);
+  if (tween) { tween.p0.add(_sd); tween.p1.add(_sd); tween.t0v.add(_sd); tween.t1.add(_sd); }
+}
+const spotBase = new Map();   // material -> its opacity before fading
+function fadeMat(m, f) { if (!spotBase.has(m)) spotBase.set(m, m.opacity); m.transparent = true; m.opacity = spotBase.get(m) * f; }
+function applySpotFade(f) {
+  const keep = k => spot?.kind === "hub" && spot.key === k;
+  for (const k of ["airflow", "dbt", "trino"]) {
+    const fk = keep(k) ? 1 : f;
+    if (hubs[k].model) hubs[k].model.setFade(fk); else for (const m of hubs[k].parts) fadeMat(m.material, fk);
+    fadeMat(hubs[k].glow.material, fk);
+  }
+  fadeMat(core.material, keep("core") ? 1 : f); fadeMat(coreGlow.material, keep("core") ? 1 : f);
+  station.setFade(spot?.kind === "station" ? 1 : f);
+  deathStar.setFade(spot?.kind === "deathstar" ? 1 : f);
+  for (const m of [routeMat, stOrbitLine.material, arcLines.material]) fadeMat(m, f);
+}
+// name tag over the selected (single click) or spotlighted planet
+const selLabel = label("", "lbl sel-lbl"); selLabel.visible = false; scene.add(selLabel);
+// spotlighted table: name tags on its upstream (blue) and downstream (amber) tables too; click one to move there
+const LIN_MAX = 40, linLabels = [];
+let linFor = null, spotNeighbors = new Set();
+function updateLineageLabels() {
+  const c = spot?.kind === "node" ? spot.n : null, id = c?.id ?? null;
+  if (linFor !== id) {
+    linFor = id;
+    const list = c ? [...up.get(c.id).map(i => [i, "up"]), ...down.get(c.id).map(i => [i, "down"])].slice(0, LIN_MAX) : [];
+    spotNeighbors = new Set(list.map(([i]) => i));
+    while (linLabels.length < list.length) {
+      const l = label("", "lbl sel-lbl lin-lbl spot"); scene.add(l);
+      l.element.addEventListener("click", () => { const x = byId.get(l.userData.id); if (x) spotNode(x); });
+      linLabels.push(l);
+    }
+    linLabels.forEach((l, k) => {
+      const it = list[k]; l.visible = !!it; l.userData.id = it?.[0];
+      if (!it) return;
+      const x = byId.get(it[0]);
+      l.element.className = `lbl sel-lbl lin-lbl spot ${it[1]}`;
+      l.element.innerHTML = `<b>${esc(x.name)}</b><span>${it[1] === "up" ? "▲ upstream" : "▼ downstream"} · ${esc(TIER[x.tier].label)}</span>`;
+      l.element.title = `Spotlight ${x.name}`;
+    });
+  }
+  for (const l of linLabels) {
+    if (!l.visible) continue;
+    const x = byId.get(l.userData.id);
+    l.position.copy(x.pos); l.position.y += x.radius * 1.5 + 7;
+  }
+}
+function updateSelLabel() {
+  const n = (spot?.kind === "node" && spot.n) || (selected && byId.get(selected));
+  selLabel.visible = !!n;
+  if (!n) return;
+  selLabel.position.copy(n.pos); selLabel.position.y += n.radius * 1.5 + 9;
+  if (selLabel.userData.id !== n.id) {
+    selLabel.userData.id = n.id;
+    selLabel.element.innerHTML = `<b>${esc(n.name)}</b><span>${esc(TIER[n.tier].label)}</span>`;
+  }
+}
+function spotNode(n) {
+  setSpot({ kind: "node", n }); flyToPlanet(n);
+  selected = n.id; refreshPlanets();
+  openStation("node", n.id);
+}
+
+document.getElementById("vDefault").onclick = () => { closeStation(); setView("default"); };   // back to the overview (closes any card)
+document.getElementById("vTop").onclick = () => setView("top");
+document.getElementById("vSide").onclick = () => setView("side");
+document.getElementById("resetHubs").onclick = () => {
+  for (const [k, v] of Object.entries(HUB_DEFAULT)) moveHub(k, new THREE.Vector3(...v));
+  try { localStorage.removeItem(HUB_STORE); } catch (e) {}
+};
+controls.addEventListener("start", () => { tween = null; });
+
+// ── Picking ─────────────────────────────────────────────────────────────────────────────────
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const satellites = [];
+let downAt = null, pointer = null;
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  // Logos are thin (the Airflow pinwheel is hollow in the middle): anything within ~45px of a
+  // logo's centre counts as that logo, so hover / drag / double-click don't fall through the gaps.
+  for (const k of ["airflow", "dbt", "trino"]) {
+    const v = hubs[k].group.position.clone().project(camera);
+    if (v.z > 1) continue;
+    const x = r.left + (v.x + 1) / 2 * r.width, y = r.top + (1 - v.y) / 2 * r.height;
+    if (Math.hypot(ev.clientX - x, ev.clientY - y) < 45) return { hub: k };
+  }
+  mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects([...planets, ...hubMeshes, ...satellites, ...station.pickables, ...deathStar.pickables], false)[0];
+  if (!hit) {
+    // the station is a lattice with gaps: near its centre still counts as the station
+    const v = station.root.position.clone().project(camera);
+    if (v.z < 1 && Math.hypot(ev.clientX - (r.left + (v.x + 1) / 2 * r.width), ev.clientY - (r.top + (1 - v.y) / 2 * r.height)) < 30) return { station: "dashboard" };
+    return null;
+  }
+  const o = hit.object;
+  return o.userData.node ? { node: o.userData.node } : o.userData.hub ? { hub: o.userData.hub } : o.userData.run ? { run: o.userData.run }
+    : o.userData.station ? { station: o.userData.station } : o.userData.deathstar ? { deathstar: true } : null;
+}
+// Drag a logo: move it on the plane facing the camera. Runs in the capture phase so it can
+// switch OrbitControls off before the controls start rotating the camera.
+let drag = null;
+const dragPlane = new THREE.Plane(), dragHit = new THREE.Vector3();
+function rayAt(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+}
+function saveHubs() {
+  try { localStorage.setItem(HUB_STORE, JSON.stringify(Object.fromEntries(Object.entries(HUB_POS).map(([k, v]) => [k, v.toArray()])))); } catch (e) {}
+}
+function moveHub(key, pos) {
+  HUB_POS[key].copy(pos); hubs[key].group.position.copy(pos); updateRoutes();
+}
+view.addEventListener("pointerdown", ev => {
+  if (ev.target !== renderer.domElement || ev.button !== 0) return;
+  const h = pick(ev);
+  if (!h?.hub || h.hub === "core") return;
+  controls.enabled = false; tween = null;
+  rayAt(ev);
+  dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), HUB_POS[h.hub]);
+  if (!ray.ray.intersectPlane(dragPlane, dragHit)) { controls.enabled = true; return; }
+  drag = { key: h.hub, offset: HUB_POS[h.hub].clone().sub(dragHit) };
+  renderer.domElement.setPointerCapture(ev.pointerId);
+  renderer.domElement.style.cursor = "grabbing"; hideTip();
+}, true);
+renderer.domElement.addEventListener("pointermove", ev => {
+  pointer = ev;
+  if (drag) {
+    rayAt(ev);
+    if (ray.ray.intersectPlane(dragPlane, dragHit)) moveHub(drag.key, dragHit.add(drag.offset));
+    return;
+  }
+  if (ev.buttons) hideTip();
+});
+renderer.domElement.addEventListener("pointerleave", () => { pointer = null; hovered = null; hideTip(); });
+renderer.domElement.addEventListener("pointerdown", ev => { downAt = [ev.clientX, ev.clientY]; });
+renderer.domElement.addEventListener("pointerup", ev => {
+  if (drag) { drag = null; controls.enabled = true; saveHubs(); return; }
+  if (!downAt || Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 5) return;
+  const h = pick(ev);
+  if (h?.node) select(h.node.id);
+  else if (h?.run) toggleScope(h.run.dag_id, h.run.run_id);
+});
+renderer.domElement.addEventListener("dblclick", ev => onDoubleClick(ev));
+function onDoubleClick(ev) {
+  const h = pick(ev);
+  if (h?.node) spotNode(h.node);
+  else if (h?.station) { setSpot({ kind: "station" }); flyToStation(h.station); openStation("ops", h.station); }
+  else if (h?.deathstar) { setSpot({ kind: "deathstar" }); flyToDeathStar(); openStation("alerts"); }
+  else if (h?.hub) {
+    setSpot({ kind: "hub", key: h.hub });
+    // fly in so the logo sits centre-left, leaving the right side for its info card
+    const p = P(h.hub), cam = p.clone().add(new THREE.Vector3(160, 110, 220));
+    const right = new THREE.Vector3().crossVectors(p.clone().sub(cam).normalize(), camera.up).normalize().multiplyScalar(70);
+    flyTo(cam.add(right).toArray(), p.clone().add(right).toArray(), 900);   // logo centre-left, card on the right
+    if (STATION_KEYS.includes(h.hub)) openStation(h.hub);
+  } else if (spot || stationKey) closeStation();   // double-click on empty space leaves the spotlight
+}
+
+// ── Station info card: health checks, specs (host, nodes, CPU, memory) and activity ──────────
+const STATION_KEYS = ["airflow", "dbt", "trino"];
+const stationEl = document.getElementById("station");
+let stationKey = null, stationTimer = null, stationNode = null;
+const ST_BADGE = { healthy: ["success", "Healthy"], degraded: ["stale", "Degraded"], down: ["failed", "Down"], unknown: ["idle", "Unknown"] };
+const CHECK_ICO = { ok: "success", warn: "stale", fail: "failed", unknown: "idle" };
+function openStation(key, part) {
+  if (stationKey !== key || key === "node") stationEl.innerHTML = `<div class="st-body"><div class="st-loading">Scanning ${esc(key === "node" ? byId.get(part)?.name : key)}…</div></div>`;
+  document.getElementById("help").style.visibility = "hidden";   // the card covers the bottom-right hint
+  if (!stationKey && paneBeforeCard === null) paneBeforeCard = paneOpen();
+  setPane(false, false);                       // give the card and the 3D view the full width
+  stationKey = key; stationEl.hidden = false;
+  stationEl.style.setProperty("--st-accent", css(`--hub-${key}`));
+  stationEl.classList.toggle("ops", key === "ops");
+  stationEl.classList.toggle("alerts", key === "alerts");
+  clearInterval(stationTimer);
+  if (key === "ops") { openOps(part); return; }   // dashboard / report / logs card (own timers)
+  if (key === "alerts") { openAlerts(); return; }  // Death Star: alerts & notification channels
+  if (key === "node") { stationNode = part; stationTimer = setInterval(loadNodeCard, 10000); loadNodeCard(); return; }
+  stationTimer = setInterval(loadStation, 15000);
+  loadStation();
+}
+function closeStation(home = true) {
+  const wasOpen = stationKey !== null || spot !== null;
+  stationKey = null; stationNode = null; stationEl.hidden = true; clearInterval(stationTimer);
+  setSpot(null);
+  if (wasOpen && home) setView("default");     // leaving a station's close-up returns to the overview
+  document.getElementById("help").style.visibility = "";
+  if (paneBeforeCard !== null) { setPane(paneBeforeCard, false); paneBeforeCard = null; }
+}
+// full-screen view: the 3D view (with the card) fills the screen
+const fsBtn = () => `<button class="st-close st-fs" aria-label="${document.fullscreenElement ? "Exit full screen" : "Full screen"}" title="Full-screen view (F)">${document.fullscreenElement ? "⤡" : "⛶"}</button>`;
+function toggleFull() {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else view.requestFullscreen?.().catch(() => {});
+}
+stationEl.addEventListener("click", e => { if (e.target.closest(".st-fs")) toggleFull(); });
+document.addEventListener("fullscreenchange", () => stationEl.querySelectorAll(".st-fs").forEach(b => {
+  b.textContent = document.fullscreenElement ? "⤡" : "⛶"; b.setAttribute("aria-label", document.fullscreenElement ? "Exit full screen" : "Full screen");
+}));
+
+// Planet card (double-click a planet): status, last run, error, lineage and recent runs
+async function loadNodeCard() {
+  const id = stationNode; if (stationKey !== "node" || !id) return;
+  try {
+    const r = await fetch(`api/nodes/${encodeURIComponent(id)}`); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json(); if (stationKey === "node" && stationNode === id) renderNodeCard(d);
+  } catch (e) {
+    if (stationKey === "node" && stationNode === id) {
+      stationEl.innerHTML = `<div class="st-body"><div class="st-head"><div class="st-titles"><h3 id="stTitle">${esc(byId.get(id)?.name || id)}</h3><p>Could not load: ${esc(e.message)}</p></div>${fsBtn()}<button class="st-close" aria-label="Close">✕</button></div></div>`;
+      stationEl.querySelector(".st-close:not(.st-fs)").addEventListener("click", () => closeStation());
+    }
+  }
+}
+function renderNodeCard(d) {
+  const n = byId.get(d.node.id); if (!n) return;
+  const s = statusOf(n.id), last = d.runs[0], cur = nodeRun(n.id);
+  stationEl.style.setProperty("--st-accent", color(s));
+  const afUrl = r => cfg.airflow_public_url && r?.airflow_dag_id && r.airflow_run_id && !r.airflow_run_id.startsWith("standalone__")
+    ? `${cfg.airflow_public_url}/dags/${encodeURIComponent(r.airflow_dag_id)}/runs/${encodeURIComponent(r.airflow_run_id)}${r.airflow_task_id ? `/tasks/${encodeURIComponent(r.airflow_task_id)}` : ""}` : null;
+  const chips = ids => ids.length ? `<div class="chips">${ids.map(i => { const x = byId.get(i);
+    return x ? `<span class="chip" data-spot="${esc(i)}" title="Spotlight ${esc(x.name)}">${ico(statusOf(i))}${esc(x.name)}</span>` : ""; }).join("")}</div>` : `<div class="note">none</div>`;
+  const link = afUrl(last), scroll = stationEl.querySelector(".st-body")?.scrollTop || 0;
+  stationEl.innerHTML = `<div class="st-body st-nodecard">
+    <div class="st-head"><span class="st-dot"></span>
+      <div class="st-titles"><h3 id="stTitle">${esc(n.name)}</h3><p>${esc(n.id)}</p></div>
+      ${fsBtn()}<button class="st-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+    <div class="st-badges"><span class="badge">${ico(s)} ${STATUS[s].label}</span><span class="badge">${esc(TIER[n.tier].label)}</span><span class="badge">${esc(n.materialized || n.kind)}</span></div>
+    <div class="st-links">
+      ${link ? `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">Airflow task ↗</a>` : ""}
+      <button class="btn" data-act="logs" title="This table's events in the Ops station log">▤ Event log</button>
+      <button class="btn" data-act="panel" title="Open the side-panel detail">☰ Side panel</button>
+    </div>
+    <section><h4>Last run</h4><dl class="specs">
+      <dt>Status</dt><dd>${STATUS[s].label}${last ? ` · ${fmtAgo(last.started_at || last.ended_at)}` : ""}</dd>
+      <dt>Duration</dt><dd>${fmtDur(last?.duration_s)}</dd>
+      <dt>Rows written</dt><dd>${fmtNum(last?.rows_affected)}</dd>
+      <dt>Airflow</dt><dd>${last?.airflow_dag_id ? `${esc(last.airflow_dag_id)} · ${esc(last.airflow_task_id || "—")}` : "—"}</dd>
+      <dt>Trino table</dt><dd>${esc(cur?.output_name || "—")}</dd>
+      <dt>Schema</dt><dd>${esc(n.schema_name || "—")}</dd>
+      <dt>dbt tests</dt><dd>${n.tests}</dd>
+    </dl></section>
+    ${last?.error ? `<section><h4>Last error</h4><div class="err">${esc(last.error)}</div></section>` : ""}
+    <section><h4>Upstream · ${d.upstream.length} feed it</h4>${chips(d.upstream)}</section>
+    <section><h4>Downstream · ${d.downstream.length} depend on it</h4>${chips(d.downstream)}</section>
+    <section><h4>Recent runs</h4>${d.runs.length ? `<table class="rtable"><thead><tr><th>Status</th><th>When</th><th class="num">Duration</th><th class="num">Rows</th></tr></thead><tbody>
+      ${d.runs.slice(0, 12).map(r => { const rs = runStatus(r.state);
+        return `<tr><td>${ico(rs)} ${STATUS[rs].label}</td><td>${fmtAgo(r.started_at || r.ended_at)}</td><td class="num">${fmtDur(r.duration_s)}</td><td class="num">${fmtCompact(r.rows_affected)}</td></tr>`; }).join("")}
+    </tbody></table>` : `<div class="note">No executions recorded yet.</div>`}</section>
+    <footer>Source: node, node_run, edge · refreshes every 10 s<br>Click a lineage chip to spotlight that table · the view follows this planet</footer></div>`;
+  stationEl.querySelector(".st-body").scrollTop = scroll;
+  stationEl.querySelector(".st-close:not(.st-fs)").addEventListener("click", () => closeStation());
+  stationEl.querySelectorAll("[data-spot]").forEach(c => c.onclick = () => { const x = byId.get(c.dataset.spot); if (x) spotNode(x); });
+  stationEl.querySelector('[data-act="logs"]').onclick = () => {
+    ops.q = n.name; ops.kind = "all";
+    setSpot({ kind: "station" }); flyToStation("logs"); openStation("ops", "logs");
+  };
+  stationEl.querySelector('[data-act="panel"]').onclick = () => { closeStation(false); setPane(true); select(n.id); };
+}
+
+async function loadStation() {
+  const key = stationKey; if (!key) return;
+  try {
+    const r = await fetch(`api/stations/${key}`); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json(); if (key === stationKey) renderStation(d);
+  } catch (e) {
+    if (key === stationKey) stationEl.innerHTML = `<div class="st-body"><div class="st-head"><div class="st-titles"><h3 id="stTitle">${esc(key)}</h3><p>Could not load: ${esc(e.message)}</p></div>${fsBtn()}<button class="st-close" aria-label="Close">✕</button></div></div>`;
+    stationEl.querySelector(".st-close:not(.st-fs)")?.addEventListener("click", closeStation);
+  }
+}
+function renderStation(d) {
+  const [bk, bl] = ST_BADGE[d.status] || ST_BADGE.unknown;
+  const when = new Date(d.checked_at).toLocaleTimeString();
+  const scroll = stationEl.querySelector(".st-body")?.scrollTop || 0;   // keep the reader's place across refreshes
+  stationEl.innerHTML = `<div class="st-body">
+    <div class="st-head"><span class="st-dot"></span>
+      <div class="st-titles"><h3 id="stTitle">${esc(d.title)}</h3><p>${esc(d.subtitle)}</p></div>
+      ${fsBtn()}<button class="st-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+    <div class="st-badges"><span class="badge">${ico(bk)} ${bl}</span>${d.version ? `<span class="badge">${esc(d.version)}</span>` : ""}</div>
+    ${d.links?.length ? `<div class="st-links">${d.links.map(l => `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`).join("")}</div>` : ""}
+    <section><h4>Health checks</h4><ul class="checks">
+      ${d.checks.map(c => `<li>${ico(CHECK_ICO[c.state] || "idle")}<span>${esc(c.label)}</span><span class="d">${esc(c.detail)}</span></li>`).join("")}
+    </ul></section>
+    <section><h4>Specs</h4><dl class="specs">${d.specs.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></section>
+    ${d.stats?.length ? `<section><h4>Activity</h4><div class="tiles">${d.stats.map(t => `<div class="tile"><b>${esc(t.value)}</b><span>${esc(t.label)}</span></div>`).join("")}</div></section>` : ""}
+    ${d.setup ? `<section class="st-setup"><h4>${esc(d.setup.title)}</h4><ol>${d.setup.steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
+    <footer>Source: ${esc(d.source)}<br>Checked ${when} · refreshes every 15 s</footer></div>`;
+  stationEl.querySelector(".st-body").scrollTop = scroll;
+  stationEl.querySelector(".st-close:not(.st-fs)").addEventListener("click", closeStation);
+}
+// ── Ops station card: dashboard, report and logs (double-click the station) ─────────────────
+const OPS_TABS = [["dashboard", "Dashboard"], ["report", "Report"], ["logs", "Logs"]];
+const OPS_WINDOWS = [["24h", "24 hours"], ["7d", "7 days"], ["30d", "30 days"]];
+const LOG_KINDS = [["all", "All"], ["errors", "Errors"], ["start", "Starts"], ["complete", "Completes"]];
+const LOG_LEVEL = { FAIL: ["failed", "FAIL"], ABORT: ["skipped", "ABORT"], START: ["running", "START"], RUNNING: ["running", "RUN"], COMPLETE: ["success", "OK"] };
+const ops = { tab: "dashboard", window: "24h", kind: "all", q: "", live: true, events: [], top: 0, open: null, tlogs: {}, more: true, seq: 0 };
+const tierLabel = k => TIER[k]?.label || k;
+const pctTxt = (a, b) => b ? `${(100 * a / b).toFixed(a === b ? 0 : 1)}%` : "—";
+const winLabel = w => OPS_WINDOWS.find(x => x[0] === w)?.[1] || w;
+function deltaTxt(cur, prev, lowerIsBetter = false) {
+  if (!prev) return `<span class="dl">no earlier data</span>`;
+  const d = (cur - prev) / prev * 100;
+  if (!isFinite(d)) return "";
+  const cls = Math.abs(d) < .5 ? "" : (d < 0) === lowerIsBetter ? "good" : "bad";
+  return `<span class="dl ${cls}">${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(Math.abs(d) < 10 ? 1 : 0)}% vs previous ${esc(ops.window)}</span>`;
+}
+function niceMax(v) { const p = 10 ** Math.floor(Math.log10(Math.max(1, v))); return Math.ceil(v / p) * p; }
+const fmtTime = iso => {
+  const d = new Date(iso), today = d.toDateString() === new Date().toDateString();
+  return (today ? "" : d.toLocaleDateString([], { month: "short", day: "numeric" }) + " ") + d.toLocaleTimeString([], { hour12: false });
+};
+const nodeByName = name => nodes.find(n => n.name === name);
+
+function openOps(part) {
+  ops.tab = OPS_TABS.some(t => t[0] === part) ? part : ops.tab;
+  stationEl.innerHTML = `<div class="st-body">
+    <div class="st-head"><span class="st-dot"></span>
+      <div class="st-titles"><h3 id="stTitle">Ops station</h3><p>Dashboard, run report and event log for the lakehouse, read from The Watcher's own database</p></div>
+      ${fsBtn()}<button class="st-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+    <div class="tabs ops-tabs" role="tablist">${OPS_TABS.map(([k, l]) => `<button role="tab" id="opsTab-${k}" data-tab="${k}">${l}</button>`).join("")}</div>
+    <div class="ops-ctl" id="opsCtl"></div>
+    <div class="ops-view" id="opsView" role="tabpanel"></div>
+    <footer id="opsFoot"></footer></div>`;
+  stationEl.querySelector(".st-close:not(.st-fs)").addEventListener("click", () => closeStation());
+  stationEl.querySelectorAll(".ops-tabs button").forEach(b => b.addEventListener("click", () => setOpsTab(b.dataset.tab, true)));
+  setOpsTab(ops.tab, false);
+}
+function setOpsTab(tabKey, fly) {
+  ops.tab = tabKey; ops.seq++;
+  stationEl.querySelectorAll(".ops-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tabKey));
+  stationEl.querySelector("#opsView").setAttribute("aria-labelledby", `opsTab-${tabKey}`);
+  stationEl.querySelector("#opsView").innerHTML = `<div class="st-loading">Receiving ${esc(tabKey)}…</div>`;
+  renderOpsCtl();
+  if (fly) flyToStation(tabKey);
+  clearInterval(stationTimer);
+  stationTimer = setInterval(loadOps, tabKey === "logs" ? 5000 : tabKey === "dashboard" ? 15000 : 60000);
+  if (tabKey === "logs") { ops.events = []; ops.top = 0; ops.more = true; }
+  loadOps();
+}
+function renderOpsCtl() {
+  const el = stationEl.querySelector("#opsCtl");
+  const seg = () => `<div class="seg" role="group" aria-label="Time window">${OPS_WINDOWS.map(([k, l]) =>
+    `<button data-win="${k}" aria-pressed="${ops.window === k}" title="Last ${l}">${k}</button>`).join("")}</div>`;
+  if (ops.tab === "logs") {
+    el.innerHTML = `<div class="seg" role="group" aria-label="Event type">${LOG_KINDS.map(([k, l]) => `<button data-kind="${k}" aria-pressed="${ops.kind === k}">${l}</button>`).join("")}</div>
+      <input type="search" id="opsQ" placeholder="Filter table, job or error…" value="${esc(ops.q)}" aria-label="Filter log events">
+      <button id="opsLive" aria-pressed="${ops.live}" title="Refresh every 5 s">● Live</button>`;
+    el.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { ops.kind = b.dataset.kind; setOpsTab("logs", false); });
+    let t; el.querySelector("#opsQ").oninput = e => { clearTimeout(t); t = setTimeout(() => { ops.q = e.target.value.trim(); ops.events = []; ops.top = 0; ops.more = true; loadOps(); }, 300); };
+    el.querySelector("#opsLive").onclick = e => { ops.live = !ops.live; e.currentTarget.setAttribute("aria-pressed", ops.live); if (ops.live) loadOps(); };
+  } else if (ops.tab === "report") {
+    el.innerHTML = `${seg()}<span class="grow"></span>
+      <a class="btn" id="opsCsv" href="api/ops/report?window=${ops.window}&format=csv" download>⇩ CSV</a>
+      <button id="opsPrint" title="Open a printable copy">⎙ Print</button>
+      <button id="opsRefresh" title="Build the report again">⟳ Rebuild</button>`;
+    el.querySelector("#opsPrint").onclick = printReport;
+    el.querySelector("#opsRefresh").onclick = () => loadOps();
+  } else {
+    el.innerHTML = `${seg()}<span class="grow"></span><span class="note" id="opsAgo"></span>`;
+  }
+  el.querySelectorAll("[data-win]").forEach(b => b.onclick = () => { ops.window = b.dataset.win; setOpsTab(ops.tab, false); });
+}
+async function loadOps(older = false) {
+  if (stationKey !== "ops") return;
+  const tabKey = ops.tab, seq = ops.seq;
+  try {
+    let url;
+    if (tabKey === "logs") {
+      if (!older && !ops.live && ops.events.length) return;
+      const p = new URLSearchParams({ kind: ops.kind, limit: "120" });
+      if (ops.q) p.set("q", ops.q);
+      if (older && ops.events.length) p.set("before", ops.events[ops.events.length - 1].id);
+      url = `api/ops/logs?${p}`;
+    } else url = `api/ops/${tabKey}?window=${ops.window}`;
+    const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if (stationKey !== "ops" || seq !== ops.seq) return;          // the reader moved on meanwhile
+    if (tabKey === "dashboard") renderOpsDashboard(d);
+    else if (tabKey === "report") { renderOpsReport(d); station.ping("report"); }
+    else renderOpsLogs(d, older);
+  } catch (e) {
+    if (seq === ops.seq) stationEl.querySelector("#opsView").innerHTML = `<div class="note">Could not load ${esc(tabKey)}: ${esc(e.message)}</div>`;
+  }
+}
+function keepScroll(fn) {
+  const b = stationEl.querySelector(".st-body"), y = b?.scrollTop || 0; fn(); if (b) b.scrollTop = y;
+}
+
+// Dashboard: KPI tiles, runs per hour/day (stacked success / failed), layer health, slowest tables
+function renderOpsDashboard(d) {
+  const k = d.kpi, p = d.prev, rate = k.runs ? k.ok / k.runs : null, prate = p.runs ? p.ok / p.runs : null;
+  const rateDelta = prate == null ? `<span class="dl">no earlier data</span>`
+    : `<span class="dl ${Math.abs(rate - prate) < .0005 ? "" : rate >= prate ? "good" : "bad"}">${rate >= prate ? "▲" : "▼"} ${(Math.abs(rate - prate) * 100).toFixed(1)} pts vs previous ${esc(ops.window)}</span>`;
+  const tiles = [
+    [fmtNum(k.runs), "Table builds", deltaTxt(k.runs, p.runs)],
+    [rate == null ? "—" : `${(rate * 100).toFixed(rate === 1 ? 0 : 1)}%`, "Success rate", rateDelta],
+    [fmtNum(k.failed), "Failed builds", deltaTxt(k.failed, p.failed, true)],
+    [fmtDur(k.p95_s), "p95 build time", deltaTxt(k.p95_s, p.p95_s, true)],
+    [fmtCompact(k.rows), "Rows written", deltaTxt(k.rows, p.rows)],
+    [`${fmtNum(k.models)}/${nodes.length}`, "Tables built", ""],
+  ];
+  const tot = d.series.reduce((a, s) => [a[0] + s.ok, a[1] + s.failed, a[2] + s.other], [0, 0, 0]);
+  const dr = d.dag_runs, drTot = Object.values(dr).reduce((a, b) => a + b, 0);
+  const hb = d.collector, hbAge = hb?.last_ok ? (Date.now() - new Date(hb.last_ok)) / 1000 : null;
+  const slowMax = Math.max(1, ...d.slowest.map(s => s.avg_s || 0));
+  keepScroll(() => {
+    stationEl.querySelector("#opsView").innerHTML = `
+      <section><h4>Last ${esc(winLabel(ops.window))}</h4><div class="tiles k6">${tiles.map(([v, l, dl]) => `<div class="tile"><b>${v}</b><span>${l}</span>${dl}</div>`).join("")}</div></section>
+      <section class="chart"><h4>Table builds per ${d.unit}</h4>
+        <div class="readout" id="opsReadout">${fmtNum(tot[0])} succeeded · ${fmtNum(tot[1])} failed${tot[2] ? ` · ${fmtNum(tot[2])} other` : ""} · hover a bar for detail</div>
+        ${runsChart(d.series, d.unit)}
+        <div class="legend-row"><span><i style="background:var(--st-success)"></i>Succeeded</span><span><i style="background:var(--st-failed)"></i>Failed</span><span><i style="background:var(--st-idle)"></i>Running / aborted</span><span>▲ marks a ${d.unit} with failures</span></div>
+      </section>
+      <section><h4>Layer health now</h4>
+        ${d.tiers.map(t => { const seg = [["ok", "success"], ["running", "running"], ["stale", "stale"], ["failed", "failed"], ["idle", "idle"]].filter(([f]) => t[f] > 0);
+          return `<div class="lh" title="${esc(tierLabel(t.tier))}: ${t.ok} fresh, ${t.running} running, ${t.stale} stale, ${t.failed} failed, ${t.idle} never built">
+            <span>${esc(tierLabel(t.tier))}</span>
+            <span class="bar">${seg.map(([f, c]) => `<i style="flex:${t[f]};background:var(--st-${c})"></i>`).join("")}</span>
+            <span class="n">${t.failed ? `<b style="color:var(--st-failed)">${t.failed} failed</b>` : `${t.ok}/${t.tables} fresh`}</span></div>`; }).join("")}
+        <div class="legend-row">${[["success", "Fresh"], ["running", "Running"], ["stale", `Stale (> ${cfg.stale_hours ?? 26} h)`], ["failed", "Failed"], ["idle", "Never built"]].map(([c, l]) => `<span><i style="background:var(--st-${c})"></i>${l}</span>`).join("")}</div>
+      </section>
+      <section><h4>Slowest tables (average build time)</h4>
+        ${d.slowest.length ? d.slowest.map(s => `<div class="slow"><span class="nm"><span class="linkish" data-node="${esc(s.name)}">${esc(s.name)}</span><small>${esc(tierLabel(s.tier))}</small></span>
+          <span class="track"><i style="width:${(100 * (s.avg_s || 0) / slowMax).toFixed(1)}%"></i></span><span class="n" title="max ${fmtDur(s.max_s)} over ${s.runs} runs">${fmtDur(s.avg_s)}</span></div>`).join("") : `<div class="note">No builds in this window.</div>`}
+      </section>
+      <section><h4>Pipeline &amp; collector</h4><ul class="checks">
+        <li>${ico(dr.failed ? "failed" : drTot ? "success" : "idle")}<span>Airflow DAG runs</span><span class="d">${drTot ? Object.entries(dr).map(([s, n]) => `${n} ${s}`).join(" · ") : "none in window"}</span></li>
+        <li>${ico(hbAge == null ? "idle" : hbAge < 120 ? "success" : "stale")}<span>Collector heartbeat</span><span class="d">${hbAge == null ? "never" : `last OK ${fmtAgo(hb.last_ok)}`}${hb?.last_error ? " · last error recorded" : ""}</span></li>
+      </ul></section>`;
+  });
+  wireOpsView(d);
+  stationEl.querySelector("#opsFoot").innerHTML = `Source: node_run, node_status, airflow_dag_run, collector_heartbeat<br>Updated ${new Date().toLocaleTimeString()} · refreshes every 15 s`;
+}
+function runsChart(series, unit) {
+  const W = 520, H = 140, L = 34, B = 20, T = 8, n = series.length, bw = (W - L) / n;
+  const max = niceMax(Math.max(1, ...series.map(s => s.ok + s.failed + s.other)));
+  const y = v => T + (H - T - B) * (1 - v / max), every = Math.ceil(n / 6);
+  const lbl = t => { const d = new Date(t); return unit === "hour" ? `${String(d.getHours()).padStart(2, "0")}:00` : d.toLocaleDateString([], { month: "short", day: "numeric" }); };
+  let g = `<line class="gl" x1="${L}" x2="${W}" y1="${y(max)}" y2="${y(max)}"/><line class="gl" x1="${L}" x2="${W}" y1="${y(max / 2)}" y2="${y(max / 2)}"/>
+    <text x="${L - 6}" y="${y(max) + 3}" text-anchor="end">${fmtCompact(max)}</text><text x="${L - 6}" y="${y(max / 2) + 3}" text-anchor="end">${fmtCompact(max / 2)}</text><text x="${L - 6}" y="${y(0) + 3}" text-anchor="end">0</text>`;
+  series.forEach((s, i) => {
+    const x = L + i * bw + 1, w = Math.max(1, bw - 2);
+    let base = 0;
+    for (const [v, c] of [[s.ok, "success"], [s.failed, "failed"], [s.other, "idle"]]) {
+      if (!v) continue;
+      const y0 = y(base), y1 = y(base + v), h = Math.max(1.5, y0 - y1);
+      g += `<rect x="${x}" y="${y0 - h}" width="${w}" height="${h}" fill="var(--st-${c})" rx="1"/>`;
+      base += v;
+    }
+    if (s.failed) g += `<text x="${x + w / 2}" y="${y(base) - 4}" text-anchor="middle" style="fill:var(--st-failed)">▲</text>`;
+    if (i % every === 0) g += `<text x="${x + w / 2}" y="${H - 5}" text-anchor="middle">${lbl(s.t)}</text>`;
+    g += `<rect class="hit" data-i="${i}" x="${L + i * bw}" y="${T}" width="${bw}" height="${H - T - B}"/>`;
+  });
+  g += `<line class="ax" x1="${L}" x2="${W}" y1="${y(0)}" y2="${y(0)}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Table builds per ${unit}: succeeded and failed">${g}</svg>`;
+}
+function wireOpsView(d) {
+  const v = stationEl.querySelector("#opsView");
+  v.querySelectorAll("[data-node]").forEach(a => a.onclick = () => showTable(a.dataset.node));
+  const ro = v.querySelector("#opsReadout");
+  if (ro && d?.series) {
+    const def = ro.innerHTML;
+    v.querySelectorAll(".hit").forEach(h => {
+      h.onmouseenter = () => { const s = d.series[+h.dataset.i], t = new Date(s.t);
+        ro.textContent = `${d.unit === "hour" ? t.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : t.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${fmtNum(s.ok)} succeeded · ${fmtNum(s.failed)} failed${s.other ? ` · ${s.other} other` : ""} · avg ${fmtDur(s.avg_s)}`; };
+      h.onmouseleave = () => { ro.innerHTML = def; };
+    });
+  }
+}
+// "show this table in the orbit": close the card, select the planet and fly to it
+function showTable(name) {
+  const n = nodeByName(name); if (!n) return;
+  closeStation(false); setPane(true); select(n.id); focusNode(n);
+}
+
+// Report: the same numbers written up for people who were not watching
+function reportHtml(d) {
+  const k = d.kpi, rate = k.runs ? k.ok / k.runs : null;
+  const worst = d.failing[0], failedNow = d.current.reduce((a, t) => a + t.failed, 0), staleNow = d.current.reduce((a, t) => a + t.stale, 0);
+  const dagFail = d.dags.filter(g => g.failed);
+  const summary = k.runs
+    ? `In the last <b>${esc(winLabel(d.window))}</b> the lakehouse ran <b>${fmtNum(k.runs)}</b> table builds across <b>${fmtNum(k.models)}</b> tables;
+       <b>${(rate * 100).toFixed(1)}%</b> succeeded and <b>${fmtNum(k.failed)}</b> failed${d.prev.runs ? ` (previous window: ${fmtNum(d.prev.runs)} builds, ${fmtNum(d.prev.failed)} failed)` : ""}.
+       Builds wrote <b>${fmtCompact(k.rows)}</b> rows; the 95th-percentile build took <b>${fmtDur(k.p95_s)}</b>.
+       ${worst ? `The table that failed most was <b>${esc(worst.name)}</b> (${esc(tierLabel(worst.tier))}, ${worst.failures}×), with <b>${worst.downstream}</b> tables downstream of it.` : "No table failed."}
+       Right now <b>${failedNow}</b> table${failedNow === 1 ? " is" : "s are"} failed and <b>${staleNow}</b> stale.
+       ${dagFail.length ? `DAGs with failed runs: ${dagFail.map(g => `<b>${esc(g.dag_id)}</b> (${g.failed}/${g.runs})`).join(", ")}.` : d.dags.length ? "Every Airflow DAG run in the window succeeded." : ""}`
+    : `No table builds were recorded in the last ${esc(winLabel(d.window))}.`;
+  return `
+    <section><h4>Summary</h4><p class="summary">${summary}</p></section>
+    <section><h4>By layer</h4>${d.tiers.length ? `<table class="rtable"><thead><tr><th>Layer</th><th class="num">Builds</th><th class="num">Success</th><th class="num">Failed</th><th class="num">p95</th><th class="num">Rows</th></tr></thead><tbody>
+      ${d.tiers.map(t => `<tr><td>${esc(tierLabel(t.tier))}</td><td class="num">${fmtNum(t.runs)}</td><td class="num">${pctTxt(t.ok, t.runs)}</td><td class="num">${t.failed ? `<b style="color:var(--st-failed)">${t.failed}</b>` : 0}</td><td class="num">${fmtDur(t.p95_s)}</td><td class="num">${fmtCompact(t.rows)}</td></tr>`).join("")}
+    </tbody></table>` : `<div class="note">No builds in this window.</div>`}</section>
+    <section><h4>Tables that failed</h4>${d.failing.length ? `<table class="rtable"><thead><tr><th>Table</th><th class="num">Fails</th><th class="num" title="Tables downstream in the dbt lineage">Downstream</th><th>Now</th></tr></thead><tbody>
+      ${d.failing.map(f => { const now = f.current_state === "failed" ? "failed" : f.current_state === "running" ? "running" : f.current_state ? "success" : "idle";
+        return `<tr><td><span class="linkish" data-node="${esc(f.name)}">${esc(f.name)}</span> <span class="note">${esc(tierLabel(f.tier))} · last ${fmtAgo(f.last_failed)}</span>
+          ${f.last_error ? `<div class="errline">${esc(f.last_error.slice(0, 220))}</div>` : ""}</td>
+          <td class="num">${f.failures}</td><td class="num">${f.downstream}</td><td>${ico(now)} ${now === "success" ? "recovered" : STATUS[now].label.toLowerCase()}</td></tr>`; }).join("")}
+    </tbody></table>` : `<div class="note">No table failed in this window.</div>`}</section>
+    <section><h4>Airflow DAGs</h4>${d.dags.length ? `<table class="rtable"><thead><tr><th>DAG</th><th class="num">Runs</th><th class="num">OK</th><th class="num">Failed</th><th class="num">Avg run</th></tr></thead><tbody>
+      ${d.dags.map(g => `<tr><td>${esc(g.dag_id)}</td><td class="num">${g.runs}</td><td class="num">${g.ok}</td><td class="num">${g.failed ? `<b style="color:var(--st-failed)">${g.failed}</b>` : 0}</td><td class="num">${fmtDur(g.avg_s)}</td></tr>`).join("")}
+    </tbody></table>` : `<div class="note">No DAG runs in this window.</div>`}</section>`;
+}
+let lastReport = null;
+function renderOpsReport(d) {
+  lastReport = d;
+  keepScroll(() => { stationEl.querySelector("#opsView").innerHTML = reportHtml(d); });
+  wireOpsView(d);
+  stationEl.querySelector("#opsFoot").innerHTML = `Source: node_run, node_status, edge (lineage), airflow_dag_run<br>Built ${new Date(d.generated_at).toLocaleString()} · CSV holds the same tables`;
+}
+function printReport() {
+  if (!lastReport) return;
+  const w = open("", "_blank"); if (!w) return;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>The Watcher — run report (${esc(lastReport.window)})</title><style>
+    body { font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1b1f24; margin: 32px; max-width: 900px; }
+    h1 { font-size: 20px; margin: 0 0 4px; } .sub { color: #5f6b7a; margin-bottom: 20px; }
+    h4 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #1f5fa8; border-bottom: 1px solid #d8dee6; padding-bottom: 4px; margin: 22px 0 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; } th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+    th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #5f6b7a; } .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .errline, .note { color: #5f6b7a; font-size: 11px; } .ico { display: none; } .linkish { color: inherit; text-decoration: none; }
+  </style></head><body><h1>The Watcher — lakehouse run report</h1><div class="sub">Last ${esc(winLabel(lastReport.window))} · generated ${new Date(lastReport.generated_at).toLocaleString()}</div>
+  ${reportHtml(lastReport)}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(() => w.print(), 250);
+}
+
+// Logs: OpenLineage events (start / complete / fail) with the error text and the Airflow task log
+function renderOpsLogs(d, older) {
+  const fresh = d.events;
+  if (older) { ops.events = ops.events.concat(fresh); ops.more = fresh.length >= 120; }
+  else {
+    if (!ops.events.length) ops.more = fresh.length >= 120;
+    const minId = fresh.length ? fresh[fresh.length - 1].id : Infinity;
+    ops.events = fresh.concat(ops.events.filter(e => e.id < minId));
+    if (!ops.events.length) ops.more = false;
+    if (fresh[0] && ops.top && fresh[0].id > ops.top) station.ping("log");
+  }
+  if (fresh[0]) ops.top = Math.max(ops.top, fresh[0].id);
+  const c = ops.counts = d.counts_24h || {};
+  stationEl.querySelectorAll("[data-kind]").forEach(b => {
+    const n = { all: Object.values(c).reduce((a, x) => a + x, 0), errors: (c.FAIL || 0) + (c.ABORT || 0), start: (c.START || 0) + (c.RUNNING || 0), complete: c.COMPLETE || 0 }[b.dataset.kind];
+    b.textContent = `${LOG_KINDS.find(k => k[0] === b.dataset.kind)[1]} ${fmtCompact(n)}`; b.title = "Events in the last 24 h";
+  });
+  drawLogs();
+}
+function drawLogs() {
+  keepScroll(() => {
+    stationEl.querySelector("#opsView").innerHTML = ops.events.length
+      ? `<ul class="logs">${ops.events.map(logItem).join("")}</ul>${ops.more ? `<button class="more" id="opsOlder">Load older events</button>` : `<div class="note">End of the log.</div>`}`
+      : `<div class="note">No events match${ops.q ? ` “${esc(ops.q)}”` : ""}.</div>`;
+  });
+  const v = stationEl.querySelector("#opsView");
+  v.querySelectorAll(".lrow").forEach(r => {
+    const toggle = () => { const id = +r.dataset.id; ops.open = ops.open === id ? null : id; drawLogs(); };
+    r.onclick = toggle; r.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggle(); } };
+  });
+  v.querySelectorAll("[data-node]").forEach(a => a.onclick = ev => { ev.stopPropagation(); showTable(a.dataset.node); });
+  v.querySelectorAll("[data-tlog]").forEach(b => b.onclick = () => loadTaskLog(+b.dataset.tlog));
+  v.querySelector("#opsOlder")?.addEventListener("click", () => loadOps(true));
+  stationEl.querySelector("#opsFoot").innerHTML = `Source: lineage_event (OpenLineage) · task logs from the Airflow REST API<br>${ops.live ? "Live: refreshes every 5 s" : "Paused"} · ${fmtNum(ops.events.length)} events shown`;
+}
+function logItem(e) {
+  const [cls, lv] = LOG_LEVEL[e.event_type] || ["idle", e.event_type];
+  const name = e.node_name || e.job_name;
+  const msg = e.event_type === "FAIL" || e.event_type === "ABORT" ? `<span class="e">${esc(e.error || e.event_type.toLowerCase())}</span>`
+    : e.event_type === "COMPLETE" ? `<span>${e.rows_affected != null ? `${fmtCompact(e.rows_affected)} rows · ` : ""}${fmtDur(e.duration_s)}${e.output_name ? ` → ${esc(e.output_name)}` : ""}</span>`
+    : `<span>started${e.airflow_task_id ? ` by task ${esc(e.airflow_task_id)}` : ""}</span>`;
+  const open = ops.open === e.id;
+  return `<li class="log"><div class="lrow" role="button" tabindex="0" aria-expanded="${open}" data-id="${e.id}">
+      <span class="t" title="${esc(e.event_time)}">${fmtTime(e.event_time)}</span><span class="lv ${cls}">${lv}</span>
+      <span class="m"><b>${esc(name)}</b>${e.tier ? `<small>${esc(tierLabel(e.tier))}</small>` : ""}${msg}</span></div>
+    ${open ? logDetail(e) : ""}</li>`;
+}
+function logDetail(e) {
+  const sim = (e.airflow_run_id || "").startsWith("standalone__");
+  const canLog = e.airflow_dag_id && e.airflow_run_id && e.airflow_task_id && !sim;
+  const af = cfg.airflow_public_url && canLog
+    ? `${cfg.airflow_public_url}/dags/${encodeURIComponent(e.airflow_dag_id)}/runs/${encodeURIComponent(e.airflow_run_id)}/tasks/${encodeURIComponent(e.airflow_task_id)}` : null;
+  const tl = ops.tlogs[e.id];
+  return `<div class="ldet">
+    <dl class="specs">
+      <dt>Event</dt><dd>${esc(e.event_type)} · ${esc(new Date(e.event_time).toLocaleString())}</dd>
+      <dt>Job</dt><dd>${esc(e.job_name)}</dd>
+      <dt>Run id</dt><dd>${esc(e.run_id)}</dd>
+      ${e.airflow_dag_id ? `<dt>Airflow</dt><dd>${esc(e.airflow_dag_id)} · ${esc(e.airflow_task_id || "—")}<br>${esc(e.airflow_run_id || "")}</dd>` : ""}
+      ${e.output_name ? `<dt>Trino table</dt><dd>${esc(e.output_name)}</dd>` : ""}
+      ${e.error ? `<dt>Error</dt><dd>${esc(e.error)}</dd>` : ""}
+    </dl>
+    <div class="st-links">
+      ${e.node_name ? `<button data-node="${esc(e.node_name)}">◎ Show table in orbit</button>` : ""}
+      ${canLog ? `<button data-tlog="${e.id}">▤ Airflow task log</button>` : ""}
+      ${af ? `<a class="btn" href="${esc(af)}" target="_blank" rel="noopener">Open in Airflow ↗</a>` : ""}
+    </div>
+    ${sim ? `<div class="note">Simulator run (started outside Airflow), so there is no Airflow task log for it.</div>` : ""}
+    ${tl ? `<pre class="tasklog">${esc(tl)}</pre>` : ""}</div>`;
+}
+async function loadTaskLog(id) {
+  const e = ops.events.find(x => x.id === id); if (!e) return;
+  ops.tlogs[id] = "Fetching the task log from Airflow…"; drawLogs();
+  try {
+    const p = new URLSearchParams({ dag_id: e.airflow_dag_id, run_id: e.airflow_run_id, task_id: e.airflow_task_id });
+    const r = await fetch(`api/ops/tasklog?${p}`), d = await r.json();
+    if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
+    let txt = d.lines.join("\n") || "(empty log)";
+    if (/Hostname not available|Could not read served logs/.test(txt))
+      txt += "\n\n— The worker pod that ran this task is gone and Airflow has no remote log storage configured, so the log can't be read any more. Configure remote logging (e.g. to OSS) to keep task logs.";
+    ops.tlogs[id] = `try ${d.try_number}${d.truncated ? " · last 500 lines" : ""}\n\n${txt}`;
+  } catch (err) {
+    ops.tlogs[id] = `Could not fetch the log: ${err.message}`;
+  }
+  if (stationKey === "ops" && ops.tab === "logs") drawLogs();
+}
+// ── Death Star card: alerts and notifications ───────────────────────────────────────────────
+const AL_TABS = [["firing", "Firing"], ["history", "History"], ["rules", "Rules"], ["channels", "Channels"]];
+const alerts = { tab: "firing", data: null, seq: 0 };
+function openAlerts() {
+  stationEl.innerHTML = `<div class="st-body">
+    <div class="st-head"><span class="st-dot"></span>
+      <div class="st-titles"><h3 id="stTitle">Death Star</h3><p>Alert &amp; notification centre: rules watch the lakehouse; Google Chat and PagerDuty plug in here</p></div>
+      ${fsBtn()}<button class="st-close" aria-label="Close" title="Close (Esc)">✕</button></div>
+    <div class="st-badges" id="alBadges"></div>
+    <div class="tabs ops-tabs" role="tablist">${AL_TABS.map(([k, l]) => `<button role="tab" id="alTab-${k}" data-tab="${k}">${l}</button>`).join("")}</div>
+    <div class="ops-view" id="alView" role="tabpanel"><div class="st-loading">Targeting…</div></div>
+    <footer id="alFoot"></footer></div>`;
+  stationEl.querySelector(".st-close:not(.st-fs)").addEventListener("click", () => closeStation());
+  stationEl.querySelectorAll(".ops-tabs button").forEach(b => b.addEventListener("click", () => setAlertsTab(b.dataset.tab)));
+  setAlertsTab(alerts.tab);
+}
+function setAlertsTab(k) {
+  alerts.tab = k; alerts.seq++;
+  stationEl.querySelectorAll(".ops-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k));
+  stationEl.querySelector("#alView").setAttribute("aria-labelledby", `alTab-${k}`);
+  clearInterval(stationTimer); stationTimer = setInterval(loadAlertsCard, 10000);
+  loadAlertsCard();
+}
+async function loadAlertsCard() {
+  if (stationKey !== "alerts") return;
+  const seq = alerts.seq, tab = alerts.tab;
+  try {
+    const r = await fetch(`api/alerts?state=${tab === "history" ? "all" : "firing"}&limit=200`); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json(); if (stationKey !== "alerts" || seq !== alerts.seq) return;
+    alerts.data = d; if (tab !== "history") setAlertState(d);
+    renderAlertsCard(d);
+  } catch (e) {
+    if (seq === alerts.seq) stationEl.querySelector("#alView").innerHTML = `<div class="note">Could not load alerts: ${esc(e.message)}</div>`;
+  }
+}
+const sevLabel = s => s === "critical" ? "CRIT" : s === "warning" ? "WARN" : s.toUpperCase();
+function alertItem(a) {
+  const n = a.node_id && byId.get(a.node_id), firing = a.state === "firing";
+  const af = cfg.airflow_public_url && a.dag_id ? `${cfg.airflow_public_url}/dags/${encodeURIComponent(a.dag_id)}` : null;
+  const span = firing ? `since ${fmtAgo(a.first_seen)}` : `${fmtAgo(a.resolved_at)} · lasted ${fmtDur((new Date(a.resolved_at) - new Date(a.first_seen)) / 1000)}`;
+  const sent = Object.keys(a.notified || {});
+  return `<li class="al ${firing ? a.severity : "resolved"}${a.acked_at ? " acked" : ""}">
+    <div class="top"><span class="sev">${firing ? sevLabel(a.severity) : "OK"}</span><span class="ttl">${esc(a.title)}</span><span class="when" title="${esc(a.first_seen)}">${span}</span></div>
+    ${a.detail ? `<div class="det">${esc(a.detail)}</div>` : ""}
+    <div class="acts">
+      ${firing ? `<button data-ack="${a.id}" title="${a.acked_at ? "Un-acknowledge" : "Acknowledge: the Death Star stands down for this alert"}">${a.acked_at ? "↺ Un-ack" : "✓ Ack"}</button>` : ""}
+      ${n ? `<button data-spotnode="${esc(n.id)}">◎ Spotlight table</button><button data-logs="${esc(n.name)}">▤ Event log</button>` : ""}
+      ${af ? `<a class="btn" href="${esc(af)}" target="_blank" rel="noopener">Airflow ↗</a>` : ""}
+    </div>
+    <div class="ntf">${a.acked_at ? `Acknowledged ${fmtAgo(a.acked_at)} · ` : ""}${sent.length ? `Notified: ${sent.map(esc).join(", ")}` : "Not notified yet: no channel configured"}</div></li>`;
+}
+function renderAlertsCard(d) {
+  const c = d.counts;
+  stationEl.querySelector("#alBadges").innerHTML = `
+    <span class="badge">${ico(c.critical ? "failed" : "success")} ${c.critical} critical</span>
+    <span class="badge">${ico(c.warning ? "stale" : "success")} ${c.warning} warning</span>
+    ${c.acked ? `<span class="badge">${c.acked} acknowledged</span>` : ""}
+    <span class="badge">${c.fired_24h} fired · ${c.resolved_24h} resolved (24 h)</span>`;
+  const v = stationEl.querySelector("#alView"), y = stationEl.querySelector(".st-body").scrollTop;
+  if (alerts.tab === "firing") {
+    v.innerHTML = d.alerts.length ? `<ul class="alist">${d.alerts.map(alertItem).join("")}</ul>`
+      : `<div class="quiet"><b>ALL QUIET</b>No alert is firing. The superlaser is powered down.</div>`;
+  } else if (alerts.tab === "history") {
+    v.innerHTML = d.alerts.length ? `<ul class="alist">${d.alerts.map(alertItem).join("")}</ul>` : `<div class="quiet">No alerts recorded yet.</div>`;
+  } else if (alerts.tab === "rules") {
+    v.innerHTML = `<section><h4>Alert rules</h4><table class="rtable"><thead><tr><th>Rule</th><th>Fires when</th><th>Severity</th></tr></thead><tbody>
+      ${d.rules.map(r => `<tr><td><b>${esc(r.title)}</b><div class="errline">${esc(r.key)} · resolves ${esc(r.resolves)}</div></td><td>${esc(r.when)}</td><td>${esc(r.severity)}</td></tr>`).join("")}
+      </tbody></table></section>
+      <section><h4>Evaluator</h4><ul class="checks"><li>${ico(d.evaluator.last_run && (Date.now() - new Date(d.evaluator.last_run)) < 5 * 60e3 ? "success" : "stale")}<span>Rules evaluated</span>
+        <span class="d">every ${d.evaluator.every_s} s · last ${fmtAgo(d.evaluator.last_run)}</span></li></ul>
+      <p class="note">The collector in the cluster evaluates the rules; this page only reads the results. Acknowledging an alert stops the Death Star firing at it; the alert still resolves on its own when the condition clears.</p></section>`;
+  } else {
+    v.innerHTML = `<section><h4>Notification channels</h4><div class="alist">${d.channels.map(ch => `<div class="ch">
+        <div class="top"><b>${esc(ch.title)}</b><span class="badge">${ico(ch.configured ? "success" : "idle")} ${ch.configured ? "Configured" : "Not configured"}</span></div>
+        <div class="note">${esc(ch.purpose)}. Reads <code>${esc(ch.env)}</code>.</div>
+        <ol>${ch.setup.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>`).join("")}</div>
+      <p class="note">Sending is not wired yet: new and resolved alerts are recorded (and logged by the collector) so nothing is lost; each alert keeps a <code>notified</code> record per channel once sending is added.</p></section>`;
+  }
+  stationEl.querySelector(".st-body").scrollTop = y;
+  v.querySelectorAll("[data-ack]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    await fetch(`api/alerts/${b.dataset.ack}/ack`, { method: "POST" }).catch(() => {});
+    loadAlertsCard(); refreshAlerts();
+  });
+  v.querySelectorAll("[data-spotnode]").forEach(b => b.onclick = () => { const n = byId.get(b.dataset.spotnode); if (n) spotNode(n); });
+  v.querySelectorAll("[data-logs]").forEach(b => b.onclick = () => { ops.q = b.dataset.logs; ops.kind = "all"; setSpot({ kind: "station" }); flyToStation("logs"); openStation("ops", "logs"); });
+  stationEl.querySelector("#alFoot").innerHTML = `Source: alert (rules evaluated every ${d.evaluator.every_s} s by the collector)<br>Updated ${new Date().toLocaleTimeString()} · refreshes every 10 s`;
+}
+function hoverTick() {
+  if (!pointer || pointer.buttons || drag) return;
+  const h = pick(pointer);
+  hovered = h;
+  renderer.domElement.style.cursor = h?.hub && h.hub !== "core" ? "move" : h ? "pointer" : "grab";
+  if (!h) return hideTip();
+  if (h.node) showNodeTip(pointer, h.node);
+  else if (h.hub) showHubTip(pointer, h.hub);
+  else if (h.run) showRunTip(pointer, h.run);
+  else if (h.station) showStationTip(pointer, h.station);
+  else if (h.deathstar) {
+    const c = alertState.counts || {};
+    tip.innerHTML = `<div class="t">Death Star · alerts &amp; notifications</div>
+      <div class="row">${c.firing ? `${c.critical} critical · ${c.warning} warning firing` : "All quiet: no alert firing"}</div>
+      <div class="row muted">${alertState.target ? `Superlaser locked on ${esc(alertState.target.name)}` : "Fires at failing critical tables · Google Chat &amp; PagerDuty plug in here"}</div>
+      <div class="row muted">Double-click to open</div>`;
+    placeTip(pointer);
+  }
+}
+function showStationTip(ev, part) {
+  const [t, d] = { dashboard: ["Habitat ring", "Dashboard: success rate, builds per hour, layer health, slowest tables"],
+                   report:    ["Research labs", "Report: summary, per-layer table, failing tables with blast radius · CSV / print"],
+                   logs:      ["Comms dish & docking ports", "Logs: live event stream, errors and Airflow task logs"] }[part];
+  const failing = nodes.filter(n => n.status === "failed").length;
+  tip.innerHTML = `<div class="t">Ops station · ${t}</div><div class="row">${d}</div>
+    <div class="row muted">${failing ? `${failing} failing table${failing > 1 ? "s" : ""}: alarm lights on the truss are lit` : "Ring windows glow with the lakehouse health"}</div>
+    <div class="row muted">Double-click to open</div>`;
+  placeTip(ev);
+}
+
+// ── Tooltips ────────────────────────────────────────────────────────────────────────────────
+const tip = document.getElementById("tip");
+function placeTip(ev) {
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+function showNodeTip(ev, d) {
+  const r = nodeRun(d.id), s = statusOf(d.id);
+  tip.innerHTML = `<div class="t">${esc(d.name)}</div>
+    <div class="row">${ico(s)} ${STATUS[s].label}${r?.ended_at ? ` · ${fmtAgo(r.ended_at)}` : r?.started_at ? ` · started ${fmtAgo(r.started_at)}` : ""}</div>
+    <div class="row">${TIER[d.tier].label} · ${esc(d.materialized || d.kind)} · ${d.tests} tests</div>
+    ${r?.airflow_task_id ? `<div class="row">Airflow ${esc(r.airflow_dag_id)}.${esc(r.airflow_task_id)}</div>` : ""}
+    ${r?.output_name ? `<div class="row">Trino ${esc(r.output_name)}</div>` : ""}
+    ${r?.duration_s != null ? `<div class="row">Duration ${fmtDur(r.duration_s)}${r.rows_affected != null ? ` · ${fmtNum(r.rows_affected)} rows` : ""}</div>` : ""}`;
+  placeTip(ev);
+}
+function hubText(key) {
+  const t = live.totals || {};
+  if (key === "airflow") return ["Airflow 3", `${t.dag_runs_active ?? 0} DAG runs active · ${t.tasks_running ?? 0} tasks running`];
+  if (key === "dbt") return ["dbt", `${t.models_running ?? 0} running · ${t.models_done_1h ?? 0} done · ${t.models_failed_1h ?? 0} failed (1h)`];
+  if (key === "trino") return ["Trino", `${fmtCompact(t.rows_1h ?? 0)} rows written (1h)`];
+  return ["Iceberg lakehouse", `${nodes.length} tables orbiting`];
+}
+function showHubTip(ev, key) {
+  const [a, b] = hubText(key);
+  const role = { airflow: "Schedules DAG runs and dispatches dbt tasks", dbt: "Compiles each model and submits its SQL", trino: "Executes the SQL and writes the Iceberg tables", core: "Iceberg on OSS: every table orbits here" }[key];
+  tip.innerHTML = `<div class="t">${a}</div><div class="row">${b}</div><div class="row muted">${role}</div>${key !== "core" ? `<div class="row muted">Drag to move · double-click for health &amp; specs</div>` : ""}`;
+  placeTip(ev);
+}
+function showRunTip(ev, r) {
+  tip.innerHTML = `<div class="t">${esc(r.dag_id)}</div><div class="row">${ico(AF_STATE[r.state] || "idle")} ${esc(r.state)} · tasks ${r.tasks_success}/${r.tasks}</div><div class="row muted">${esc(r.run_id)}</div><div class="row muted">Click to scope the orbit to this run</div>`;
+  placeTip(ev);
+}
+
+// ── Airflow satellites: one per active DAG run ──────────────────────────────────────────────
+const satGeo = new THREE.BoxGeometry(7, 7, 7);
+function syncSatellites() {
+  const active = live.dag_runs.filter(r => r.state === "running" || r.state === "queued").slice(0, 10);
+  while (satellites.length < active.length) { const m = new THREE.Mesh(satGeo, new THREE.MeshStandardMaterial({ roughness: .4 })); scene.add(m); satellites.push(m); }
+  while (satellites.length > active.length) scene.remove(satellites.pop());
+  active.forEach((r, i) => { satellites[i].userData.run = r; satellites[i].material.color.set(color(AF_STATE[r.state] || "idle")); });
+}
+
+// ── Status -> visuals ───────────────────────────────────────────────────────────────────────
+// Planet size = rows written by the node's latest finished run, on a log scale (1K -> 1B rows).
+// Pure per-mesh scale, so it costs nothing extra per frame.
+function sizeFor(rows, kind) {
+  if (rows == null) return kind === "source" ? 3.4 : 4.2;
+  const t = Math.min(1, Math.max(0, (Math.log10(Math.max(1, rows)) - 3) / 6));
+  return 3 + t * 10;
+}
+function refreshPlanets() {
+  const touched = scope ? new Set(scope.nodeRuns.keys()) : null;
+  const q = query.toLowerCase();
+  for (const n of nodes) {
+    n.status = statusOf(n.id);
+    const rows = nodeRun(n.id)?.rows_affected;
+    if (rows != null || !n.sized) { n.radiusTarget = sizeFor(rows, n.kind); n.sized = rows != null; }   // a running run has no rows yet: keep the last size
+    const c = new THREE.Color(color(n.status));
+    const m = n.mesh.material;
+    // energy level: no runs yet = the core burns low; failed / running take on the status colour
+    const glow = metalOf(n).glow;
+    m.emissive.copy(n.status === "failed" || n.status === "running" ? glow.clone().lerp(c, .6) : glow);
+    m.emissiveIntensity = n.status === "idle" ? .2 : n.status === "failed" ? .7 : n.status === "running" ? .8 : .45;
+    n.energy = n.status === "idle" ? .5 : 1;
+    const dim = (touched && !touched.has(n.id) && n.tier !== "raw") || (q && !n.name.toLowerCase().includes(q)) || (layer && n.tier !== layer) || (errOnly && n.status !== "failed");
+    m.opacity = dim ? 0.14 : 1; n.dim = !!dim;
+    n.match = !!(q && n.name.toLowerCase().includes(q));
+    n.halo.visible = n.status === "running" || n.match || n.id === selected;
+    n.halo.material.color.set(n.match || n.id === selected ? css("--text-primary") : c);
+    // shape cue beyond hue: failed = solid ring, stale / skipped = dashed ring
+    n.ring.visible = !dim && (n.status === "failed" || n.status === "stale" || n.status === "skipped");
+    n.ring.material.map = n.status === "failed" ? ringSolidTex : ringDashTex;
+    n.ring.material.color.copy(c); n.ring.material.needsUpdate = true;
+  }
+  updateProgress(); updateHubLabels(); updateErrBtn();
+  if (lineage?.visible) { lineage.setFilter({ query, errOnly, layer }); lineage.refresh(); }
+}
+function updateHubLabels() {
+  for (const k of ["airflow", "dbt", "trino"]) {
+    const [a, b] = hubText(k);
+    hubs[k].label.element.innerHTML = `<b>${a}</b><span>${b}</span>`;
+  }
+  { const [a, b] = hubText("core"); coreLabel.element.innerHTML = `<b>${a}</b><span>${b}</span>`; }
+  for (const [t, l] of ringLabels) l.element.innerHTML = `${t.label}<b>${nodes.filter(n => n.tier === t.key).length}</b>`;
+}
+function updateProgress() {
+  document.getElementById("progress").innerHTML = TIERS.map(t => {
+    const ring = nodes.filter(n => n.tier === t.key && (!scope || scope.nodeRuns.has(n.id)));
+    const c = new Map(); ring.forEach(n => c.set(n.status, (c.get(n.status) || 0) + 1));
+    const total = ring.length;
+    const segs = STATUS_ORDER.filter(s => c.get(s)).map(s =>
+      `<span style="width:${c.get(s) / Math.max(total, 1) * 100}%;background:var(--st-${s})" data-tip="${STATUS[s].label}: ${c.get(s)}"></span>`).join("");
+    const cls = layer === t.key ? "active" : layer ? "off" : "";
+    return `<div class="tier ${cls}" data-tier="${t.key}" role="button" tabindex="0" aria-pressed="${layer === t.key}" title="Show only ${t.label} (click again to show all)"><div class="name"><span>${t.label}</span><b>${c.get("success") || 0}/${total}</b></div><div class="bar">${segs}</div></div>`;
+  }).join("");
+}
+// Layer filter: click a tier in the strip (or its label in the 3D view) to show only that layer
+function setLayer(key) {
+  layer = layer === key ? null : key;
+  for (const t of TIERS) {
+    const on = !layer || layer === t.key;
+    t.on = on; t.guideMat.opacity = NEON.core[on ? 0 : 1];
+    t.leadMat.opacity = on ? .9 : .12; t.dotMat.opacity = on ? 1 : .15;
+    t.labelObj.element.classList.toggle("active", layer === t.key);
+    t.labelObj.element.classList.toggle("off", !on);
+  }
+  const chip = document.getElementById("layerChip");
+  chip.innerHTML = layer ? `Layer <b>${TIER[layer].label}</b> <button id="clearLayer" title="Show all layers (Esc)">✕</button>` : "";
+  if (layer) document.getElementById("clearLayer").onclick = () => setLayer(layer);
+  refreshPlanets();
+  if (!document.getElementById("pane-list").hidden) renderList();
+}
+document.getElementById("progress").addEventListener("click", ev => {
+  const el = ev.target.closest(".tier"); if (el) setLayer(el.dataset.tier);
+});
+document.getElementById("progress").addEventListener("keydown", ev => {
+  const el = ev.target.closest(".tier"); if (el && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setLayer(el.dataset.tier); }
+});
+document.getElementById("progress").addEventListener("mousemove", ev => {
+  const t = ev.target.dataset?.tip; if (!t) return hideTip();
+  tip.innerHTML = `<div class="row">${esc(t)}</div>`; placeTip(ev);
+});
+document.getElementById("progress").addEventListener("mouseleave", hideTip);
+
+let lightMode = false;
+function applyTheme() {
+  const dark = document.documentElement.dataset.theme !== "light";
+  lightMode = !dark;
+  // additive glow vanishes on a light background: switch the planets' neon to normal blending
+  const glowBlend = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
+  for (const n of nodes) {
+    if (!n.cage) continue;
+    const mt = metalOf(n);
+    n.cage.material.blending = glowBlend; n.cage.material.color.set(dark ? mt.edge : mt.lightEdge); n.cage.material.needsUpdate = true;
+    n.aura.material.blending = glowBlend; n.aura.material.color.set(dark ? mt.glow : mt.lightAura); n.aura.material.needsUpdate = true;
+    n.halo.material.blending = glowBlend; n.halo.material.needsUpdate = true;
+  }
+  arcLines.material.blending = glowBlend; arcLines.material.needsUpdate = true;
+  arcLines.visible = dark;                     // formal light mode: no sparks
+  for (const a of arcs) { a.tip.material.blending = glowBlend; a.tip.material.color.set(dark ? "#e6fbff" : "#2a6fc4"); a.tip.material.visible = dark; a.tip.material.needsUpdate = true; }
+  scene.background = new THREE.Color(css("--bg"));
+  stars.visible = dark;
+  ringMat.color.set(css("--ring")); leaderMat.color.set(css("--ring")); leaderDotMat.color.set(css("--text-primary"));
+  ringMat.color.set(css("--neon-core")); ringGlowMat.color.set(css("--neon-glow"));
+  const blend = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
+  for (const t of TIERS) {
+    for (const m of [t.guideMat, t.glowMat, t.glow2Mat]) { m.blending = blend; m.needsUpdate = true; }
+    t.glowMat.color.copy(ringGlowMat.color); t.glow2Mat.color.copy(ringGlowMat.color);
+  }
+  for (const t of TIERS) { t.guideMat.color.copy(ringMat.color); t.leadMat.color.copy(leaderMat.color); t.dotMat.color.copy(leaderDotMat.color); } routeMat.color.set(css("--text-muted"));
+  lineMats.up.color.set(css("--accent")); lineMats.down.color.set(css("--edge-down"));
+  for (const [k, v] of [["airflow", "--hub-airflow"], ["dbt", "--hub-dbt"], ["trino", "--hub-trino"]]) {
+    const c = new THREE.Color(css(v));
+    hubs[k].glow.material.color.copy(c);
+    hubs[k].glow.material.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
+    hubs[k].glow.material.opacity = dark ? .55 : .25;
+  }
+  station.setTheme(dark); deathStar.setTheme(dark); bunbun.setTheme(dark);
+  stOrbitLine.material.color.set(dark ? 0x63d4ff : 0x1f5fa8); stOrbitLine.material.opacity = dark ? .32 : .4;
+  const cc = new THREE.Color(css("--core"));
+  core.material.color.copy(cc); core.material.emissive.copy(cc); core.material.emissiveIntensity = .6;
+  coreGlow.material.color.copy(cc);
+  coreGlow.material.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
+  coreGlow.material.opacity = dark ? .55 : .25;
+  if (nodes.length) refreshPlanets();
+}
+
+// ── Job movement from state changes ─────────────────────────────────────────────────────────
+const ticker = document.getElementById("ticker");
+function tick(html) {
+  const d = document.createElement("div"); d.className = "tk"; d.innerHTML = html;
+  station.ping("log");
+  ticker.prepend(d);
+  while (ticker.children.length > 5) ticker.lastChild.remove();
+  setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 700); }, 6000);
+}
+function flash(key) { hubs[key].flash = 1; }
+function animateTransitions() {
+  let budget = 50;
+  const next = new Map();
+  for (const n of nodes) {
+    const r = live.nodes[n.id]; if (!r) continue;
+    next.set(n.id, { run_id: r.run_id, state: r.state });
+    if (firstState) continue;
+    const p = prevRuns.get(n.id);
+    const isNewRun = !p || p.run_id !== r.run_id;
+    if (!isNewRun && p.state === r.state) continue;
+    if (budget-- <= 0) continue;
+    const st = runStatus(r.state);
+    const task = r.airflow_task_id ? esc(r.airflow_task_id) : "manual";
+    const dest = esc(r.output_name || n.name);
+    if (r.state === "running") {
+      // dispatch: Airflow task -> dbt -> Trino; the running stream then feeds the table
+      launch([at("airflow"), at("dbt"), at("trino")], color("running"), { legMs: 700, onLeg: k => flash(k === 1 ? "dbt" : "trino") });
+      tick(`${ico("running")} <code>${task}</code><span class="arrow">→</span>dbt <code>${esc(n.name)}</code><span class="arrow">→</span>Trino <code>${dest}</code>`);
+    } else {
+      // the write lands in the table, then the task reports back to Airflow
+      const stops = isNewRun || p.state !== "running"
+        ? [at("airflow"), at("dbt"), at("trino"), atNode(n), at("airflow")]
+        : [at("trino"), atNode(n), at("airflow")];
+      launch(stops, color(st), { legMs: 650, onLeg: k => { if (k === stops.length - 2) n.pulse = 1; if (k === stops.length - 1) flash("airflow"); } });
+      tick(`${ico(st)} <code>${dest}</code> ${STATUS[st].label.toLowerCase()}${r.rows_affected != null ? ` · ${fmtCompact(r.rows_affected)} rows` : ""}<span class="arrow">→</span>Airflow <code>${task}</code>`);
+    }
+  }
+  prevRuns = next; firstState = false;
+}
+
+// ── Render loop ─────────────────────────────────────────────────────────────────────────────
+let lastT = performance.now(), frameNo = 0;
+function frame(now) {
+  const dt = Math.min(100, now - lastT); lastT = now;
+  if (spinning && (!hovered?.node || spot)) rot += dt / 1000;   // a spotlighted planet keeps orbiting (the view follows it)
+  if (tween) {
+    const t = Math.min(1, (now - tween.start) / tween.ms), e = t < .5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+    camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0v, tween.t1, e);
+    if (t >= 1) tween = null;
+  }
+  controls.update();
+
+  const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+  for (const n of nodes) {
+    planetPos(n, n.pos);
+    n.mesh.position.copy(n.pos);
+    n.mesh.rotation.y += dt / (2500 + n.mul * 3000);   // cores spin on their own axis
+    const buzz = .78 + .22 * Math.sin(now / 90 + n.buzz) * Math.sin(now / 37 + n.buzz * 2);   // neon hum
+    const f = spot?.kind === "node" && spot.n === n ? 1 : spotNeighbors.has(n.id) ? Math.max(spotFade, .75) : spotFade;   // spotlight: the others fade, its lineage stays visible
+    n.mesh.material.opacity = (n.dim ? .14 : 1) * f;
+    n.cage.material.opacity = (n.dim ? .08 : .85) * n.energy * buzz * f;
+    n.aura.material.opacity = (n.dim ? .05 : .5) * n.energy * buzz * (lightMode ? .35 : 1) * f;   // softer in formal light mode
+    n.radius += (n.radiusTarget - n.radius) * Math.min(1, dt / 400);   // ease toward the new size
+    n.mesh.scale.setScalar(n.radius * (1 + n.pulse * 0.9) * (n.match || n.id === selected ? 1.35 : 1));
+    if (n.pulse > 0) n.pulse = Math.max(0, n.pulse - dt / 700);
+    if (n.halo.visible) {
+      n.halo.position.copy(n.pos);
+      n.halo.scale.setScalar(n.radius * (n.status === "running" ? 4 + 2.5 * pulse : 4.2));
+      n.halo.material.opacity = (n.status === "running" ? 0.35 + 0.5 * pulse : 0.6) * f;
+    }
+    if (n.ring.visible) { n.ring.position.copy(n.pos); n.ring.scale.setScalar(n.radius * 3.4); n.ring.material.opacity = f; }
+  }
+  stepArcs(dt);
+  const tot = live.totals || {};
+  const busy = (tot.tasks_running || 0) + (tot.models_running || 0) + (tot.dag_runs_active || 0) > 0 || nodes.some(n => n.status === "running");
+  const af = hubs.airflow;
+  af.spin += ((busy ? 5.5 : 0) - af.spin) * Math.min(1, dt / 700);   // spin up / coast down
+  for (const k of ["airflow", "dbt", "trino"]) hubs[k].group.quaternion.copy(camera.quaternion);   // face the viewer
+  af.inner.rotation.z -= af.spin * dt / 1000;                    // pinwheel spin around its face
+  af.inner.rotation.y = Math.sin(now / 1900) * 0.35;             // sway so the extrusion reads as 3D
+  stepAirflowFx(dt);
+  hubs.dbt.inner.rotation.y = Math.sin(now / 1500) * 0.45;
+  hubs.trino.inner.rotation.y = Math.sin(now / 1700 + 1) * 0.45;
+  stepTrinoFx(dt, now, (tot.models_running || 0) > 0 || nodes.some(n => n.status === "running"));
+  for (const h of Object.values(hubs)) {
+    if (h.flash > 0) h.flash = Math.max(0, h.flash - dt / 900);
+    h.glow.scale.setScalar(HUB_GLOW[h.key] * (1 + h.flash * 0.7));
+  }
+  if (spot?.kind === "station" || !hovered?.station) stAngle += dt / ST_ORBIT.period * Math.PI * 2;   // pauses under the mouse; spotlighted, the view rides along
+  placeStation();
+  {
+    const failing = nodes.reduce((a, n) => a + (n.status === "failed"), 0);
+    const health = failing ? "bad" : nodes.some(n => n.status === "stale") ? "warn" : busy ? "busy" : "ok";
+    station.update(now, dt, { health, failing, frozen: false });
+  }
+  deathStar.update(now, dt, { level: alertState.level, target: alertState.target?.pos, home: CORE,
+    onHit: () => { const n = alertState.target; if (n) { n.pulse = 1; tick(`${ico("failed")} Death Star fired at <code>${esc(n.name)}</code>: critical alert`); } } });
+  sunLight.position.copy(CORE);
+  coreGlow.scale.setScalar(150 * (1 + 0.04 * Math.sin(now / 900)));
+  satellites.forEach((m, i) => {
+    const a = now / 2400 + i / Math.max(1, satellites.length) * Math.PI * 2;
+    m.position.set(HUB_POS.airflow.x + 82 * Math.cos(a), HUB_POS.airflow.y + 8 * Math.sin(a * 2), HUB_POS.airflow.z + 82 * Math.sin(a));
+    m.rotation.x += dt / 900; m.rotation.y += dt / 1200;
+  });
+  for (const t of TIERS) {   // neon breathing, phase-shifted per layer
+    const br = 0.8 + 0.2 * Math.sin(now / 1300 + t.i * 0.9), k = t.on ? 0 : 1;
+    t.glowMat.opacity = NEON.inner[k] * br * spotFade; t.glow2Mat.opacity = NEON.outer[k] * br * spotFade;
+    t.guideMat.opacity = NEON.core[k] * spotFade;
+    t.leadMat.opacity = (t.on ? .9 : .12) * spotFade; t.dotMat.opacity = (t.on ? 1 : .15) * spotFade;
+  }
+  {   // spotlight fade in / out
+    const target = spot ? .22 : 1;
+    if (spot || spotFade !== target) {
+      spotFade += (target - spotFade) * Math.min(1, dt / 250);
+      if (Math.abs(target - spotFade) < .005) spotFade = target;
+      applySpotFade(spotFade);
+    }
+  }
+  followSpot(); updateSelLabel(); updateLineageLabels();
+  stepPackets(now); syncStreams(now); drawLineage();
+  if (++frameNo % 3 === 0) hoverTick();
+  // under the lineage canvas the 3D scene only ticks over (every 2 s) so the 2D view gets the frame budget
+  if (!lineage?.visible || now - lastHidden3d > 2000) { lastHidden3d = now; renderer.render(scene, camera); labelRenderer.render(scene, camera); }
+  requestAnimationFrame(frame);
+}
+function resize() {
+  const { width, height } = view.getBoundingClientRect();
+  if (!width || !height) return;
+  renderer.setSize(width, height); labelRenderer.setSize(width, height);
+  camera.aspect = width / height; camera.updateProjectionMatrix();
+}
+
+// ── Side panel ──────────────────────────────────────────────────────────────────────────────
+function tab(name) {
+  document.querySelectorAll(".tabs button[role=tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.pane === name));
+  document.querySelectorAll(".pane").forEach(p => p.hidden = p.id !== `pane-${name}`);
+  if (name === "list") renderList();
+  if (name === "activity") renderActivity();
+}
+document.querySelectorAll(".tabs button[role=tab]").forEach(b => b.onclick = () => tab(b.dataset.pane));
+
+// ── Side panel collapse (remembered per browser). Opening a station card collapses it and
+//    closing the card puts it back the way it was.
+let paneBeforeCard = null;
+function paneOpen() { return !document.body.classList.contains("pane-collapsed"); }
+function setPane(open, remember = true) {
+  document.body.classList.toggle("pane-collapsed", !open);
+  document.getElementById("paneToggle").setAttribute("aria-pressed", open);
+  if (remember) try { localStorage.setItem("watcher-pane", open ? "open" : "closed"); } catch (e) {}
+}
+document.getElementById("paneToggle").onclick = () => { paneBeforeCard = null; setPane(!paneOpen()); };
+document.getElementById("paneCollapse").onclick = () => { paneBeforeCard = null; setPane(false); };
+document.getElementById("paneHandle").onclick = () => { paneBeforeCard = null; setPane(true); };
+try { if (localStorage.getItem("watcher-pane") === "closed") setPane(false, false); } catch (e) {}
+
+function renderRuns() {
+  const el = document.getElementById("pane-runs");
+  if (!live.dag_runs.length) { el.innerHTML = `<div class="empty">No Airflow runs synced yet.</div>`; return; }
+  el.innerHTML = `<div class="muted" style="margin-bottom:8px">Click a run to scope the orbit to it. Active runs also orbit the Airflow station as satellites.</div>` +
+    live.dag_runs.map(r => {
+      const s = AF_STATE[r.state] || "idle";
+      const sel = scope && scope.dag_id === r.dag_id && scope.run_id === r.run_id;
+      const total = Math.max(1, r.tasks), other = r.tasks - r.tasks_success - r.tasks_running - r.tasks_failed;
+      const seg = (n, st) => n > 0 ? `<span style="width:${n / total * 100}%;background:var(--st-${st})"></span>` : "";
+      const dur = r.start_date ? ((r.end_date ? new Date(r.end_date) : Date.now()) - new Date(r.start_date)) / 1000 : null;
+      return `<div class="run ${sel ? "sel" : ""}" data-dag="${esc(r.dag_id)}" data-run="${esc(r.run_id)}">
+        <div class="top">${ico(s)}<span class="dag">${esc(r.dag_id)}</span><span class="muted">${esc(r.state)}</span></div>
+        <div class="meta">${esc(r.run_type || "")} · ${fmtAgo(r.start_date)} · ${fmtDur(dur)} · tasks ${r.tasks_success}/${r.tasks}${r.node_runs ? ` · ${r.node_runs} models` : ""}</div>
+        <div class="bar">${seg(r.tasks_success, "success")}${seg(r.tasks_running, "running")}${seg(r.tasks_failed, "failed")}${seg(other, "idle")}</div>
+      </div>`;
+    }).join("");
+  el.querySelectorAll(".run").forEach(div => div.onclick = () => toggleScope(div.dataset.dag, div.dataset.run));
+}
+
+function renderActivity() {
+  const el = document.getElementById("pane-activity");
+  if (!live.activity?.length) { el.innerHTML = `<div class="empty">No jobs recorded yet.</div>`; return; }
+  el.innerHTML = `<div class="muted" style="margin-bottom:6px">Each hop: Airflow task → dbt model → Trino table. Newest first.</div>` +
+    live.activity.map(a => {
+      const n = a.node_id && byId.get(a.node_id), st = runStatus(a.state);
+      return `<div class="hop" data-id="${esc(a.node_id || "")}">
+        <div class="h1">${ico(st)}<b>${esc(n?.name || a.node_id || "unmapped job")}</b><span class="muted">${fmtAgo(a.updated_at)}</span></div>
+        <div class="path">
+          <span>Airflow</span><code>${esc(a.airflow_dag_id ? `${a.airflow_dag_id}.${a.airflow_task_id || ""}` : "—")}</code>
+          <span>dbt</span><code>${esc(n ? `${n.kind} · ${TIER[n.tier].label}` : "—")}</code>
+          <span>Trino</span><code>${esc(a.output_name || "—")}</code>
+          <span>Result</span><span>${STATUS[st].label}${a.duration_s != null ? ` · ${fmtDur(a.duration_s)}` : ""}${a.rows_affected != null ? ` · ${fmtNum(a.rows_affected)} rows` : ""}</span>
+        </div></div>`;
+    }).join("");
+  el.querySelectorAll(".hop").forEach(h => h.onclick = () => h.dataset.id && select(h.dataset.id));
+}
+
+async function toggleScope(dag_id, run_id) {
+  if (scope && scope.dag_id === dag_id && scope.run_id === run_id) scope = null;
+  else scope = { dag_id, run_id, nodeRuns: new Map() };
+  await refreshScope(); renderRuns();
+}
+async function refreshScope() {
+  const sc = document.getElementById("scope");
+  if (!scope) { sc.innerHTML = `Showing <b>latest status</b> of every node`; refreshPlanets(); return; }
+  const r = await fetch(`api/dag_runs/${encodeURIComponent(scope.dag_id)}/${encodeURIComponent(scope.run_id)}`).then(r => r.json());
+  const m = new Map(); for (const nr of r.node_runs) if (nr.node_id) m.set(nr.node_id, nr);
+  scope.nodeRuns = m;
+  sc.innerHTML = `Scoped to <b>${esc(scope.dag_id)}</b> · ${esc(scope.run_id)} <button id="clearScope" style="margin-left:6px;padding:1px 8px">✕ clear</button>`;
+  document.getElementById("clearScope").onclick = () => toggleScope(scope.dag_id, scope.run_id);
+  refreshPlanets();
+}
+
+async function select(id) {
+  selected = id; tab("detail"); refreshPlanets();
+  if (lineage?.visible) lineage.setSelected(id);
+  const el = document.getElementById("pane-detail");
+  const d = await fetch(`api/nodes/${encodeURIComponent(id)}`).then(r => r.json());
+  const n = byId.get(id), s = statusOf(id), last = d.runs[0], cur = nodeRun(id);
+  const afLink = r => cfg.airflow_public_url && r.airflow_dag_id && r.airflow_run_id
+    ? `<a target="_blank" rel="noopener" href="${cfg.airflow_public_url}/dags/${encodeURIComponent(r.airflow_dag_id)}/runs/${encodeURIComponent(r.airflow_run_id)}${r.airflow_task_id ? `/tasks/${encodeURIComponent(r.airflow_task_id)}` : ""}">${esc(r.airflow_task_id || r.airflow_dag_id)}</a>` : esc(r.airflow_task_id || "—");
+  const chips = ids => ids.length ? `<div class="chips">${ids.map(i => { const x = byId.get(i); return x ? `<span class="chip" data-id="${esc(i)}">${ico(statusOf(i))}${esc(x.name)}</span>` : ""; }).join("")}</div>` : `<div class="muted">none</div>`;
+  el.innerHTML = `
+    <h2>${esc(n.name)}</h2><div class="muted">${esc(n.id)}</div>
+    <div style="margin-top:8px"><button id="flyNode">✈ Fly to planet</button></div>
+    <dl class="kv">
+      <dt>Status</dt><dd>${ico(s)} ${STATUS[s].label}</dd>
+      <dt>Layer</dt><dd>${TIER[n.tier].label}${n.schema_name ? ` · <code>${esc(n.schema_name)}</code>` : ""}</dd>
+      <dt>Materialized</dt><dd>${esc(n.materialized || n.kind)}</dd>
+      <dt>Tests</dt><dd>${n.tests}</dd>
+      <dt>Airflow</dt><dd>${last ? afLink(last) : "—"}</dd>
+      <dt>Trino table</dt><dd>${esc(cur?.output_name || "—")}</dd>
+      <dt>Last run</dt><dd>${last ? `${fmtAgo(last.started_at || last.ended_at)} · ${fmtDur(last.duration_s)}` : "—"}</dd>
+      <dt>Rows</dt><dd>${fmtNum(last?.rows_affected)}</dd>
+    </dl>
+    ${last?.error ? `<h3>Last error</h3><div class="err">${esc(last.error)}</div>` : ""}
+    <h3>Upstream (${d.upstream.length})</h3>${chips(d.upstream)}
+    <h3>Downstream (${d.downstream.length})</h3>${chips(d.downstream)}
+    <h3>Recent runs</h3>
+    ${d.runs.length ? `<table><thead><tr><th>Status</th><th>Started</th><th class="num">Duration</th><th>Airflow task</th></tr></thead><tbody>
+      ${d.runs.map(r => { const rs = runStatus(r.state);
+        return `<tr><td>${ico(rs)} ${STATUS[rs].label}</td><td>${fmtAgo(r.started_at || r.ended_at)}</td><td class="num">${fmtDur(r.duration_s)}</td><td>${afLink(r)}</td></tr>`; }).join("")}
+    </tbody></table>` : `<div class="muted">No executions recorded yet.</div>`}`;
+  el.querySelectorAll(".chip").forEach(c => c.onclick = () => select(c.dataset.id));
+  document.getElementById("flyNode").onclick = () => focusNode(n);
+}
+
+function renderList() {
+  const el = document.getElementById("pane-list");
+  const rows = nodes.filter(n => (!query || n.name.toLowerCase().includes(query.toLowerCase())) && (!layer || n.tier === layer) && (!errOnly || n.status === "failed"))
+    .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.ti - b.ti || a.name.localeCompare(b.name));
+  el.innerHTML = `<table><thead><tr><th>Status</th><th>Model</th><th>Layer</th><th class="num">Duration</th></tr></thead><tbody>
+    ${rows.map(n => { const r = nodeRun(n.id);
+      return `<tr data-id="${esc(n.id)}" style="cursor:pointer"><td>${ico(n.status)} ${STATUS[n.status].label}</td><td>${esc(n.name)}</td><td>${TIER[n.tier].label}</td><td class="num">${fmtDur(r?.duration_s)}</td></tr>`; }).join("")}
+  </tbody></table>${errOnly && !rows.length ? `<div class="muted" style="padding:10px">No failing tables${query || layer ? " match the current search / layer" : " right now"} ✓</div>` : ""}`;
+  el.querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => { select(tr.dataset.id); if (errOnly && !lineage?.visible) focusNode(byId.get(tr.dataset.id)); });
+}
+
+function renderLegend() {
+  document.getElementById("legend").innerHTML =
+    ["success", "running", "failed", "stale", "skipped", "idle"].map(s => `<span class="lg">${ico(s)} ${STATUS[s].label}</span>`).join("") +
+    `<span class="flow"><span class="dot" style="background:var(--hub-airflow)"></span>Airflow task → <span class="dot" style="background:var(--hub-dbt)"></span>dbt model → <span class="dot" style="background:var(--hub-trino)"></span>Trino → <span class="dot" style="background:var(--core)"></span>Iceberg table → status back to Airflow</span>` +
+    `<span class="lg"><span class="dot metal bronze"></span>Bronze = raw</span><span class="lg"><span class="dot metal silver"></span>Silver = silver L1 + integration</span><span class="lg"><span class="dot metal gold"></span>Gold = dims, facts, marts, snapshots</span>` +
+    `<span class="lg muted">Planet = energy core in its layer's metal (crackles while its model runs) · size = rows written by last run (log) · status = halo / ring · hover for lineage (blue upstream, amber downstream)</span>`;
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────────────────────
+const spinBtn = document.getElementById("spin");
+spinBtn.onclick = () => { spinning = !spinning; spinBtn.setAttribute("aria-pressed", spinning); };
+// Errors button: dim everything but the failing planets and list them in the Table tab for a quick jump
+function updateErrBtn() {
+  const n = nodes.reduce((a, x) => a + (x.status === "failed"), 0), b = document.getElementById("errOnly");
+  document.getElementById("errCount").textContent = n;
+  b.classList.toggle("has", n > 0);
+  b.title = errOnly ? "Show all tables again (E / Esc)" : n ? `${n} failing table${n > 1 ? "s" : ""}: show only those (E)` : "No failing tables right now (E)";
+}
+function setErrOnly(on = !errOnly) {
+  errOnly = on;
+  document.getElementById("errOnly").setAttribute("aria-pressed", on);
+  refreshPlanets();
+  if (on) { setPane(true); tab("list"); }
+  else if (!document.getElementById("pane-list").hidden) renderList();
+}
+document.getElementById("errOnly").onclick = () => setErrOnly();
+// Canvas button: the 2D lineage canvas over the 3D view; the side panel's Detail tab follows its selection
+function setCanvas(on = !lineage.visible) {
+  if (on) { closeStation(false); lineage.setFilter({ query, errOnly, layer }); lineage.setSelected(selected); lineage.show(); }
+  else lineage.hide();
+  document.getElementById("canvasMode").setAttribute("aria-pressed", on);
+  document.body.classList.toggle("canvas-mode", on);
+}
+document.getElementById("canvasMode").onclick = () => setCanvas();
+document.getElementById("search").oninput = e => { query = e.target.value.trim(); refreshPlanets(); if (!document.getElementById("pane-list").hidden) renderList(); };
+document.getElementById("theme").onclick = () => {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+  try { localStorage.setItem("orbit-theme", root.dataset.theme); } catch (e) {}
+  applySpotFade(1); spotBase.clear();          // the theme resets colours / opacities: re-capture before fading again
+  applyTheme(); renderLegend(); lineage?.refresh();
+};
+addEventListener("keydown", ev => {
+  if (ev.target.matches("input, textarea")) return;
+  if (ev.key === "p" || ev.key === "P") { paneBeforeCard = null; setPane(!paneOpen()); }
+  else if (ev.key === "c" || ev.key === "C") setCanvas();
+  else if (lineage.visible && ev.key === "Escape") lineage.selected ? lineage.clearSelection() : setCanvas(false);
+  else if (lineage.visible && (ev.key === "o" || ev.key === "O")) lineage.toggleChain();
+  else if (lineage.visible && ev.key === "0") lineage.fit();
+  else if (lineage.visible && "rtsRTS".includes(ev.key)) return;   // 3D camera keys do nothing on the canvas
+  else if (ev.key === "Escape" && (stationKey || spot)) closeStation();
+  else if (ev.key === "f" || ev.key === "F") toggleFull();
+  else if (ev.key === "Escape" && errOnly) setErrOnly(false);
+  else if (ev.key === "Escape" && layer) setLayer(layer);
+  else if (ev.key === "e" || ev.key === "E") setErrOnly();
+  else if (ev.key === "r" || ev.key === "R") { closeStation(); setView("default"); }
+  else if (ev.key === "t" || ev.key === "T") setView("top");
+  else if (ev.key === "s" || ev.key === "S") setView("side");
+  else if (ev.key === " ") { ev.preventDefault(); spinBtn.click(); }
+});
+try { const t = localStorage.getItem("orbit-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) { spinning = false; spinBtn.setAttribute("aria-pressed", false); }
+
+// ── Boot ────────────────────────────────────────────────────────────────────────────────────
+cfg = await fetch("api/config").then(r => r.json());
+layout(await fetch("api/topology").then(r => r.json()));
+buildPlanets(); applyTheme(); renderLegend(); renderRuns(); updateHubLabels();
+new ResizeObserver(resize).observe(view); resize();
+requestAnimationFrame(frame);
+refreshAlerts(); setInterval(refreshAlerts, 10000);
+lineage = createLineage({
+  host: view, tiers: TIERS, nodes: () => nodes, byId: () => byId, up, down, statusOf,
+  tierLabel: k => TIER[k]?.label ?? k, statusLabel: s => STATUS[s]?.label ?? s,
+  onSelect: id => select(id),
+  onOpen3d: id => { const n = byId.get(id); setCanvas(false); if (n) spotNode(n); },
+  onClose: () => setCanvas(false),
+});
+
+const liveEl = document.getElementById("live");
+const es = new EventSource("api/stream");
+es.onopen = () => { liveEl.classList.add("on"); liveEl.lastElementChild.textContent = "live"; };
+es.onerror = () => { liveEl.classList.remove("on"); liveEl.lastElementChild.textContent = "reconnecting…"; };
+es.addEventListener("state", async ev => {
+  live = JSON.parse(ev.data);
+  if (scope) await refreshScope(); else refreshPlanets();
+  animateTransitions(); syncSatellites(); renderRuns();
+  if (!document.getElementById("pane-list").hidden) renderList();
+  if (!document.getElementById("pane-activity").hidden) renderActivity();
+});
+window.__orbit = { setView, flyTo, camera, controls, hubs, station, deathStar, orbitPoint, TIERS, alertState: () => alertState, nodes: () => nodes, spot: () => spot, lineage: () => lineage };   // handy for debugging in the console
+</script>
+</body>
+</html>
