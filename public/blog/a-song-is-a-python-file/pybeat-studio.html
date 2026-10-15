@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PyBeat Studio</title>
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen studio. Library rail (left) · track header, transport and code editor (centre) · now-playing rack (right).
+   Stacks to a scrolling page on narrow screens. Light cyberpunk: night-plum base, cyan run rail, signal-yellow actions, notched corners. */
+:root {
+  color-scheme: dark;
+  --bg: #110d1b; --grid: rgba(54,227,255,.045);
+  --panel: #18132a; --panel-2: #211a36; --panel-3: #2a2244; --rule: #30284a;
+  --fg: #ece8f6; --muted: #8d86a8; --faint: #4f4769;
+  --run: #36e3ff; --run-bg: rgba(54,227,255,.09);
+  --accent: #f3e600; --on-accent: #15101f; --hot: #ff3ea5; --err: #ff5470; --warn: #ffb547; --ok: #4ee6a5;
+  --kick: #ff6b5e; --clap: #ffcf5a; --roll: #ffa04d; --hat: #5fd4e8; --bass: #a78bff; --lead: #ff7ac8; --pad: #7fa6ff; --other: #9a93b5;
+  --kw: #c59bff; --str: #b4dc8f; --num: #ffad85; --fn: #7fcfff; --com: #6c6385;
+  --shadow: 0 18px 50px rgba(0,0,0,.45);
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  color-scheme: light;
+  --bg: #eef0f7; --grid: rgba(0,120,160,.07);
+  --panel: #ffffff; --panel-2: #e9ebf5; --panel-3: #dfe2f0; --rule: #d2d6e7;
+  --fg: #17132a; --muted: #5e5a79; --faint: #a6a2bd;
+  --run: #0088ab; --run-bg: rgba(0,136,171,.10);
+  --accent: #f3e600; --on-accent: #15101f; --hot: #d0157c; --err: #d41f45; --warn: #b86e00; --ok: #138a5a;
+  --kick: #e0443a; --clap: #a87f00; --roll: #c4650f; --hat: #0b8ea8; --bass: #6a4ce0; --lead: #c92d8a; --pad: #3b6dd4; --other: #6f6a8c;
+  --kw: #7a3fd1; --str: #3d7a1b; --num: #b5521c; --fn: #0a6ea6; --com: #8b86a3;
+  --shadow: 0 18px 50px rgba(40,30,80,.18);
+} }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef0f7; --grid: rgba(0,120,160,.07);
+  --panel: #ffffff; --panel-2: #e9ebf5; --panel-3: #dfe2f0; --rule: #d2d6e7;
+  --fg: #17132a; --muted: #5e5a79; --faint: #a6a2bd;
+  --run: #0088ab; --run-bg: rgba(0,136,171,.10);
+  --accent: #f3e600; --on-accent: #15101f; --hot: #d0157c; --err: #d41f45; --warn: #b86e00; --ok: #138a5a;
+  --kick: #e0443a; --clap: #a87f00; --roll: #c4650f; --hat: #0b8ea8; --bass: #6a4ce0; --lead: #c92d8a; --pad: #3b6dd4; --other: #6f6a8c;
+  --kw: #7a3fd1; --str: #3d7a1b; --num: #b5521c; --fn: #0a6ea6; --com: #8b86a3;
+  --shadow: 0 18px 50px rgba(40,30,80,.18);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--run); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 14px; }
+
+/* ---------- top bar ---------- */
+.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-block: 12px; }
+.logo { display: flex; align-items: baseline; gap: 10px; }
+.logo b { font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: .02em; text-transform: uppercase; }
+.logo b i { font-style: normal; color: var(--run); }
+.logo span { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.top .spacer { flex: 1; }
+.chip { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--rule); padding: 4px 9px; display: inline-flex; align-items: center; gap: 7px; background: var(--panel); }
+.chip::before { content: ""; width: 7px; height: 7px; background: var(--faint); }
+.chip.ok::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.chip.warn::before { background: var(--warn); }
+.keys { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.keys kbd { font-family: var(--mono); border: 1px solid var(--rule); border-bottom-width: 2px; padding: 0 5px; background: var(--panel); color: var(--fg); }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: 250px minmax(0, 1fr) 292px; gap: 14px; min-height: 0; }
+.panel { background: var(--panel); border: 1px solid var(--rule); position: relative; min-height: 0; }
+.panel::before, .panel::after { content: ""; position: absolute; width: 10px; height: 10px; pointer-events: none; }
+.panel::before { top: -1px; left: -1px; border-top: 2px solid var(--run); border-left: 2px solid var(--run); }
+.panel::after { bottom: -1px; right: -1px; border-bottom: 2px solid var(--hot); border-right: 2px solid var(--hot); }
+.label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+.btn { --n: 7px; border: 0; padding: 8px 13px; background: var(--panel-3); color: var(--fg); font-weight: 600; font-size: 13px;
+  clip-path: polygon(0 0, calc(100% - var(--n)) 0, 100% var(--n), 100% 100%, var(--n) 100%, 0 calc(100% - var(--n)));
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.btn:hover { background: color-mix(in srgb, var(--panel-3) 70%, var(--run)); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: color-mix(in srgb, var(--accent) 85%, #fff); }
+.btn.danger:hover { background: color-mix(in srgb, var(--panel-3) 55%, var(--err)); }
+.btn.ghost { background: transparent; border: 1px solid var(--rule); clip-path: none; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn svg { width: 15px; height: 15px; flex: none; }
+.ibtn { width: 32px; height: 32px; padding: 0; justify-content: center; }
+
+/* library */
+.lib { display: flex; flex-direction: column; }
+.lib-head { padding: 14px 14px 10px; display: grid; gap: 10px; border-bottom: 1px solid var(--rule); }
+.lib-head .row { display: flex; gap: 8px; }
+.lib-head .row .btn { flex: 1; justify-content: center; }
+.search { width: 100%; background: var(--panel-2); border: 1px solid var(--rule); padding: 7px 10px; font-size: 13px; }
+.search::placeholder { color: var(--muted); }
+.list { flex: 1; overflow: auto; padding: 6px; display: grid; align-content: start; gap: 2px; min-height: 0; }
+.item { text-align: left; background: transparent; border: 0; border-left: 2px solid transparent; padding: 9px 10px; display: grid; gap: 3px; width: 100%; }
+.item:hover { background: var(--panel-2); }
+.item.on { background: var(--run-bg); border-left-color: var(--run); }
+.item .nm { font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.item .nm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .nm .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.item .mt { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item .bars { display: flex; gap: 2px; height: 4px; margin-top: 3px; }
+.item .bars i { height: 100%; background: var(--panel-3); }
+.item.on .bars i { background: color-mix(in srgb, var(--run) 45%, var(--panel-3)); }
+.lib-foot { border-top: 1px solid var(--rule); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.lib-empty { color: var(--muted); font-size: 13px; padding: 14px 10px; line-height: 1.5; }
+
+/* work column */
+.work { display: flex; flex-direction: column; min-width: 0; }
+.trackbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+.tname { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; }
+.tname input { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .01em; background: transparent; border: 0; border-bottom: 1px dashed transparent; padding: 0; width: 100%; min-width: 0; }
+.tname input:hover, .tname input:focus { border-bottom-color: var(--rule); outline: none; }
+.tname .mt { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.tname .mt .dirty { color: var(--accent); }
+.tname .mt .saved { color: var(--ok); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.transport { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+#play { --n: 9px; min-width: 112px; justify-content: center; font-family: var(--display); letter-spacing: .06em; font-size: 14px; padding: 10px 16px; }
+.clock { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.clock b { color: var(--fg); font-weight: 600; }
+.timeline { flex: 1 1 260px; min-width: 0; display: flex; gap: 2px; height: 30px; }
+.seg { flex-grow: var(--bars); flex-basis: 0; min-width: 0; border: 0; background: var(--panel-2); color: var(--muted); position: relative; overflow: hidden; padding: 0 6px;
+  font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; text-align: left; }
+.seg.on { color: var(--fg); background: var(--panel-3); }
+.seg .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--run-bg); border-right: 2px solid var(--run); }
+.seg span { position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.tgl { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); background: transparent; border: 1px solid var(--rule); padding: 6px 9px; }
+.tgl[aria-pressed="true"] { color: var(--run); border-color: var(--run); background: var(--run-bg); }
+.vol { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.vol input { width: 80px; accent-color: var(--run); }
+
+/* editor */
+.edscroll { flex: 1; min-height: 0; overflow: auto; position: relative; background: var(--panel); }
+.edinner { position: relative; width: max-content; min-width: 100%; min-height: 100%; }
+#hl, #ta { font-family: var(--mono); font-size: 13px; line-height: 20px; tab-size: 4; letter-spacing: 0; font-variant-ligatures: none; }
+#hl { margin: 0; padding: 12px 0 40px; white-space: pre; }
+#ta { position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: none; overflow: hidden; background: transparent;
+  color: transparent; caret-color: var(--run); padding: 12px 24px 40px 56px; white-space: pre; }
+#ta::selection { background: color-mix(in srgb, var(--run) 30%, transparent); color: transparent; }
+.ln { display: flex; height: 20px; position: relative; padding-right: 24px; }
+.ln .no { width: 56px; flex: none; text-align: right; padding-right: 16px; color: var(--faint); user-select: none; font-variant-numeric: tabular-nums; }
+.ln.dim > .src { opacity: .4; }
+.ln.run { background: var(--run-bg); box-shadow: inset 3px 0 0 var(--run); }
+.ln.run .no { color: var(--run); }
+.ln.cur { background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.ln.err { background: color-mix(in srgb, var(--err) 12%, transparent); box-shadow: inset 3px 0 0 var(--err); }
+.ln.err .no { color: var(--err); }
+.ln.flash { animation: flash .34s ease-out; }
+@keyframes flash { from { background: color-mix(in srgb, var(--c) 40%, transparent); box-shadow: inset 3px 0 0 var(--c); } to { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
+.badge { margin-left: 16px; font-size: 10.5px; line-height: 16px; align-self: center; padding: 0 6px; background: var(--run); color: var(--on-accent); font-weight: 600; }
+.badge.y { background: var(--accent); }
+.k { color: var(--kw); } .s { color: var(--str); } .n { color: var(--num); } .f { color: var(--fn); } .c { color: var(--com); font-style: italic; }
+.pc.x { color: var(--fg); font-weight: 600; }
+.pc.now { background: var(--c); color: var(--on-accent); }
+.dropzone { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 85%, transparent); border: 2px dashed var(--run); z-index: 4;
+  font-family: var(--display); font-size: 20px; color: var(--run); letter-spacing: .04em; }
+.status { display: flex; gap: 14px; flex-wrap: wrap; padding: 7px 14px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.status .e { color: var(--err); } .status .w { color: var(--warn); } .status .g { color: var(--ok); }
+.status .sp { flex: 1; }
+
+/* empty state */
+.empty { flex: 1; overflow: auto; padding: 28px 24px; display: grid; align-content: start; gap: 18px; }
+.empty h2 { font-family: var(--display); font-size: 26px; margin: 0; text-wrap: balance; }
+.empty p { color: var(--muted); margin: 0; max-width: 60ch; line-height: 1.55; }
+.tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.tpl { text-align: left; background: var(--panel-2); border: 1px solid var(--rule); padding: 14px; display: grid; gap: 6px; }
+.tpl:hover, .tpl[aria-checked="true"] { border-color: var(--run); background: var(--run-bg); }
+.tpl b { font-family: var(--display); font-size: 16px; }
+.tpl span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.tpl code { font-family: var(--mono); font-size: 11px; color: var(--run); }
+
+/* rack */
+.rack { overflow: auto; display: grid; align-content: start; }
+.rack section { padding: 14px; border-bottom: 1px solid var(--rule); }
+.now { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 8px; }
+.now b { display: block; font-family: var(--display); font-size: 19px; margin-top: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#nSec { color: var(--run); text-transform: uppercase; }
+.beats { display: flex; gap: 5px; margin-top: 12px; }
+.beats i { flex: 1; height: 5px; background: var(--panel-3); }
+.beats i.on { background: var(--run); box-shadow: 0 0 8px var(--run); }
+.lanes { display: grid; gap: 6px; margin-top: 10px; }
+.lane { display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 8px; align-items: center; }
+.lane .nmb { font-family: var(--mono); font-size: 11px; color: var(--c); background: transparent; border: 0; padding: 2px 0; text-align: left; display: flex; align-items: center; gap: 5px; }
+.lane .nmb::before { content: "●"; font-size: 8px; }
+.lane.muted .nmb { color: var(--faint); text-decoration: line-through; }
+.lane.muted .nmb::before { content: "○"; }
+.lane.off .nmb { opacity: .55; }
+.cells { display: grid; grid-template-columns: repeat(16, minmax(0,1fr)); gap: 2px; }
+.cells i { aspect-ratio: 1; max-width: 100%; background: var(--panel-2); }
+.cells i:nth-child(4n+1) { background: var(--panel-3); }
+.cells i.x { background: color-mix(in srgb, var(--c) 38%, var(--panel-2)); }
+.lane.off .cells i.x, .lane.muted .cells i.x { background: color-mix(in srgb, var(--faint) 45%, var(--panel-2)); }
+.cells i.ph { outline: 1px solid var(--muted); outline-offset: -1px; }
+.cells i.x.ph.hit { background: var(--c); box-shadow: 0 0 9px var(--c); }
+.lane.pad .cells i { background: color-mix(in srgb, var(--c) 22%, var(--panel-2)); }
+.lane.pad.off .cells i, .lane.pad.muted .cells i { background: var(--panel-2); }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+.probs { display: grid; gap: 6px; margin-top: 8px; }
+.prob { text-align: left; border: 0; background: var(--panel-2); padding: 8px 10px; font-size: 12.5px; line-height: 1.45; display: grid; grid-template-columns: auto 1fr; gap: 8px; border-left: 2px solid var(--warn); }
+.prob.e { border-left-color: var(--err); }
+.prob .lnno { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.okline { color: var(--ok); font-size: 12.5px; margin-top: 8px; font-family: var(--mono); }
+.rack p.note { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 8px 0 0; }
+.rack p.note code { font-family: var(--mono); font-size: 11.5px; color: var(--fg); }
+
+/* modal + toast */
+.scrim { position: fixed; inset: 0; background: rgba(8,6,16,.55); display: grid; place-items: center; z-index: 20; padding: 16px; }
+.modal { width: min(560px, 100%); max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--rule); box-shadow: var(--shadow); padding: 20px; display: grid; gap: 14px; position: relative; }
+.modal h3 { margin: 0; font-family: var(--display); font-size: 20px; }
+.modal p { margin: 0; color: var(--muted); line-height: 1.5; }
+.modal .foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.field { display: grid; gap: 5px; }
+.field input { background: var(--panel-2); border: 1px solid var(--rule); padding: 8px 10px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 9px 14px; font-size: 13px; font-weight: 500; z-index: 30; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+
+/* responsive */
+@media (max-width: 1180px) {
+  .shell { grid-template-columns: 230px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .rack { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-height: none; }
+  .rack section { border-right: 1px solid var(--rule); }
+  .app { height: auto; min-height: 100%; }
+  .shell { min-height: 640px; }
+  .work { height: calc(100vh - 90px); min-height: 560px; }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .lib { max-height: 300px; }
+  .work { height: 76vh; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .ln.flash { animation-duration: .01s; } .beats i.on { box-shadow: none; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="logo"><b>Py<i>Beat</i> Studio</b><span>numpy tracks · live view</span></div>
+    <span class="chip" id="storeChip">Loading library</span>
+    <div class="spacer"></div>
+    <div class="keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> play · <kbd>Ctrl</kbd>+<kbd>S</kbd> save</div>
+  </header>
+
+  <div class="shell">
+    <aside class="panel lib" aria-label="Track library">
+      <div class="lib-head">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="label">Library</span><span class="label" id="libCount">0 tracks</span></div>
+        <input class="search" id="search" type="search" placeholder="Search tracks" aria-label="Search tracks">
+        <div class="row">
+          <button class="btn primary" id="newBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>New</button>
+          <button class="btn" id="openBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h4l1.5 1.5H14v7.5H2z"/></svg>Open .py</button>
+        </div>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="lib-foot">
+        <span class="label" id="libStore">—</span>
+        <button class="btn ghost" id="exportAll" type="button">Export all</button>
+      </div>
+    </aside>
+
+    <section class="panel work" aria-label="Track editor">
+      <div id="workMain" style="display:contents">
+        <div class="trackbar">
+          <div class="tname">
+            <input id="tname" aria-label="Track name" maxlength="80" spellcheck="false">
+            <div class="mt"><span id="tMeta">—</span><span id="tState"></span></div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="saveBtn" type="button">Save</button>
+            <button class="btn" id="dupBtn" type="button">Duplicate</button>
+            <button class="btn" id="dlBtn" type="button">Download .py</button>
+            <button class="btn" id="copyBtn" type="button">Copy</button>
+            <button class="btn danger ibtn" id="delBtn" type="button" aria-label="Delete track" title="Delete track"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg></button>
+          </div>
+        </div>
+        <div class="transport">
+          <button class="btn primary" id="play" type="button">▶ PLAY</button>
+          <div class="clock"><b id="tNow">0:00.0</b> / <span id="tLen">0:00.0</span></div>
+          <div class="timeline" id="timeline" aria-label="Sections — click to jump"></div>
+          <button class="tgl" id="loopBtn" type="button" aria-pressed="true">⟲ Loop</button>
+          <label class="vol" for="vol">VOL <input id="vol" type="range" min="0" max="100" value="80"></label>
+        </div>
+        <div class="edscroll" id="edscroll">
+          <div class="edinner">
+            <pre id="hl" aria-hidden="true"></pre>
+            <textarea id="ta" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Python code"></textarea>
+          </div>
+        </div>
+        <div class="status">
+          <span id="sCursor">Ln 1, Col 1</span><span id="sProb"></span><span class="sp"></span><span>Python 3 · numpy</span>
+        </div>
+      </div>
+      <div class="empty" id="workEmpty" hidden>
+        <span class="label">No track open</span>
+        <h2>Start a track</h2>
+        <p>Pick a starting point. Every track is a complete Python script: run it with numpy to render a WAV, or play it here and watch each line fire.</p>
+        <div class="tpls" id="emptyTpls"></div>
+        <div><button class="btn" id="openBtn2" type="button">Open a .py file instead</button></div>
+      </div>
+    </section>
+
+    <aside class="panel rack" aria-label="Now playing">
+      <section>
+        <span class="label">Now playing</span>
+        <div class="now">
+          <div><span class="label">section</span><b id="nSec">—</b></div>
+          <div><span class="label">bar</span><b id="nBar">–</b></div>
+          <div><span class="label">chord</span><b id="nChord">–</b></div>
+        </div>
+        <div class="beats" id="beats"><i></i><i></i><i></i><i></i></div>
+      </section>
+      <section>
+        <div style="display:flex;justify-content:space-between"><span class="label">Patterns</span><span class="label">step <span id="nStep">1</span>/16</span></div>
+        <div class="lanes" id="lanes"></div>
+        <p class="hint">Click a part name to mute it. Muting is a mixer setting and doesn't change the code.</p>
+      </section>
+      <section>
+        <span class="label">Problems</span>
+        <div id="probs"></div>
+      </section>
+      <section>
+        <span class="label">How playback works</span>
+        <p class="note">The player reads <code>BPM</code>, <code>PATTERNS</code>, <code>CHORDS</code>, <code>ARRANGEMENT</code> and the <code>hits(...)</code> lines from your code, and edits take effect on the next step while it plays. The browser has its own versions of the instruments, so changes inside a <code>def</code> body only change the sound when you run the file with Python.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="file" accept=".py,.txt,text/x-python,text/plain" multiple hidden>
+<div class="scrim" id="scrim" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+const BASE = "\"\"\"A 128 BPM EDM track built from nothing but numpy.\nRun:  python edm_track.py   ->  writes edm_track.wav\n\"\"\"\nimport wave\nimport numpy as np\n\nBPM = 128\nSR = 44100\nSTEP = 60 / BPM / 4          # one 16th note, in seconds\nBAR = 16 * STEP\nrng = np.random.default_rng(7)\n\ndef hz(note):                # MIDI note number -> frequency\n    return 440 * 2 ** ((note - 69) / 12)\n\ndef env(n, decay):           # exponential fade-out, n samples long\n    return np.exp(-np.arange(n) / SR * decay)\n\ndef saw(freq, seconds):\n    t = np.arange(int(SR * seconds)) / SR\n    return 2 * (t * freq % 1) - 1\n\ndef soften(x, k=12):         # moving average = cheap low-pass filter\n    return np.convolve(x, np.ones(k) / k, \"same\")\n\n# ---- instruments -------------------------------------------------------\ndef kick():\n    t = np.arange(int(SR * 0.35)) / SR\n    freq = 45 + 140 * np.exp(-t * 40)     # fast pitch drop = the thump\n    return np.sin(2 * np.pi * np.cumsum(freq) / SR) * env(len(t), 8)\n\ndef clap():\n    n = int(SR * 0.18)\n    return rng.uniform(-1, 1, n) * env(n, 20) * 0.45\n\ndef hat():\n    n = int(SR * 0.04)\n    noise = np.diff(rng.uniform(-1, 1, n), prepend=0)   # crude high-pass\n    return noise * env(n, 90) * 0.18\n\ndef bass(note):\n    tone = soften(saw(hz(note), STEP * 2), 20)\n    return tone * env(len(tone), 9) * 0.55\n\ndef lead(note):\n    tone = saw(hz(note), STEP) + saw(hz(note) * 1.008, STEP)   # detuned pair\n    return soften(tone, 6) * env(len(tone), 10) * 0.12\n\ndef pad(chord):\n    tone = sum(saw(hz(n), BAR) + saw(hz(n) * 1.004, BAR) for n in chord)\n    return soften(tone, 40) * 0.05\n\ndef pump(n):                 # sidechain: volume ducks on every kick\n    since_beat = (np.arange(n) / SR) % (4 * STEP)\n    return 1 - 0.75 * np.exp(-since_beat * 14)\n\n# ---- the song ----------------------------------------------------------\nPATTERNS = {\n    \"kick\": \"x...x...x...x...\",\n    \"clap\": \"....x.......x...\",\n    \"hat\":  \"..x...x...x...x.\",\n    \"bass\": \"..x...x...x...xx\",\n    \"lead\": \"x.xx.x.xx.x.x.x.\",\n    \"roll\": \"x.x.x.x.xxxxxxxx\",\n}\nCHORDS = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]]  # Am F C G\n\nARRANGEMENT = [\n    (\"intro\", 4, [\"pad\", \"hat\"]),\n    (\"build\", 4, [\"pad\", \"hat\", \"kick\", \"roll\"]),\n    (\"drop\",  8, [\"pad\", \"kick\", \"clap\", \"hat\", \"bass\", \"lead\"]),\n    (\"outro\", 4, [\"pad\", \"kick\", \"hat\"]),\n]\n\ntotal_bars = sum(bars for _, bars, _ in ARRANGEMENT)\nmix = np.zeros(int(SR * BAR * (total_bars + 1)))\n\ndef add(sound, at):\n    i = int(at * SR)\n    mix[i:i + len(sound)] += sound\n\ndef hits(part, parts, step):\n    return part in parts and PATTERNS[part][step] == \"x\"\n\nt = 0.0\nfor section, bars, parts in ARRANGEMENT:\n    for bar in range(bars):\n        chord = CHORDS[bar % 4]\n        if \"pad\" in parts:\n            sound = pad(chord)\n            if \"kick\" in parts:\n                sound *= pump(len(sound))\n            add(sound, t)\n        for step in range(16):\n            at = t + step * STEP\n            if hits(\"kick\", parts, step):\n                add(kick(), at)\n            if hits(\"clap\", parts, step):\n                add(clap(), at)\n            if hits(\"roll\", parts, step):\n                add(clap() * (bar + 1) / bars, at)   # snare roll swells\n            if hits(\"hat\", parts, step):\n                add(hat(), at)\n            if hits(\"bass\", parts, step):\n                add(bass(chord[0] - 12), at)\n            if hits(\"lead\", parts, step):\n                add(lead(chord[step % 3] + 12), at)\n        t += BAR\n\nmix = mix[: int(SR * t)]\nmix = np.tanh(mix * 1.4)                     # soft clip = loudness\npcm = (mix / np.abs(mix).max() * 32000).astype(np.int16)\nwith wave.open(\"edm_track.wav\", \"wb\") as f:\n    f.setnchannels(1)\n    f.setsampwidth(2)\n    f.setframerate(SR)\n    f.writeframes(pcm.tobytes())\nprint(f\"wrote edm_track.wav ({t:.1f}s, {total_bars} bars)\")\n";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+/* ================= templates ================= */
+const NOTE_NAMES = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+function chordName(ns) {
+  if (!ns || !ns.length) return "–";
+  const r = Math.min(...ns), root = NOTE_NAMES[((r % 12) + 12) % 12];
+  const iv = ns.map(n => ((n - r) % 12 + 12) % 12);
+  if (iv.includes(3) && !iv.includes(4)) return root + "m";
+  return root;
+}
+function slugify(s) { return (s || "track").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "track"; }
+function buildScript(d) {
+  const keyW = Math.max(...Object.keys(d.patterns).map(k => k.length)) + 3;
+  const pat = "PATTERNS = {\n" + Object.entries(d.patterns).map(([k, v]) => `    ${(`"${k}":`).padEnd(keyW)} "${v}",`).join("\n") + "\n}";
+  const nameW = Math.max(...d.arr.map(a => a[0].length)) + 4;
+  const arr = "ARRANGEMENT = [\n" + d.arr.map(([n, b, p]) => `    ${(`("${n}",`).padEnd(nameW)} ${b}, [${p.map(x => `"${x}"`).join(", ")}]),`).join("\n") + "\n]";
+  const chords = `CHORDS = [${d.chords.map(c => "[" + c.join(", ") + "]").join(", ")}]  # ${d.chords.map(chordName).join(" ")}`;
+  const slug = slugify(d.title);
+  return BASE
+    .replace(/^"""A 128 BPM EDM track built from nothing but numpy\./m, `"""${d.title}: ${d.bpm} BPM, built from nothing but numpy.`)
+    .replace(/^BPM = \d+/m, `BPM = ${d.bpm}`)
+    .replace(/PATTERNS = \{[\s\S]*?\n\}/, pat)
+    .replace(/^CHORDS = .*$/m, chords)
+    .replace(/ARRANGEMENT = \[[\s\S]*?\n\]/, arr)
+    .replace(/edm_track/g, slug);
+}
+const TEMPLATES = [
+  { id: "neon", title: "Neon Drop", desc: "128 BPM big-room drop. Am F C G, sidechained pads, detuned lead arp.", tag: "intro · build · drop · outro",
+    code: () => BASE },
+  { id: "techno", title: "Warehouse Techno", desc: "132 BPM rolling 16th hats, offbeat bass, a breakdown and a peak.", tag: "intro · groove · break · peak · outro",
+    code: (title) => buildScript({ title, bpm: 132,
+      patterns: { kick: "x...x...x...x...", clap: "....x.......x...", hat: "x.xxx.xxx.xxx.xx", bass: "..xx..xx..xx..xx", lead: "x..x..x...x..x..", roll: "x...x...x.x.xxxx" },
+      chords: [[50,53,57],[46,50,53],[53,57,60],[48,52,55]],
+      arr: [["intro",4,["kick","hat"]],["groove",8,["pad","kick","clap","hat","bass"]],["break",4,["pad","lead","roll"]],["peak",8,["pad","kick","clap","hat","bass","lead"]],["outro",4,["kick","hat"]]] }) },
+  { id: "blank", title: "Empty 4/4", desc: "Just a kick on every beat at 124 BPM. All patterns ready to fill in.", tag: "one 4-bar loop",
+    code: (title) => buildScript({ title, bpm: 124,
+      patterns: { kick: "x...x...x...x...", clap: "................", hat: "................", bass: "................", lead: "................", roll: "................" },
+      chords: [[57,60,64],[53,57,60],[48,52,55],[55,59,62]],
+      arr: [["loop",4,["kick"]]] }) },
+];
+
+/* ================= parser ================= */
+const KNOWN = ["kick","clap","roll","hat","bass","lead"];
+const parseCache = new Map();
+function parse(code) {
+  if (parseCache.has(code)) return parseCache.get(code);
+  const lines = code.split("\n");
+  const probs = [];
+  const err = (line, msg) => probs.push({ sev: "e", line, msg });
+  const warn = (line, msg) => probs.push({ sev: "w", line, msg });
+  const s = { bpm: null, bpmLine: -1, patterns: {}, patLine: {}, patOrder: [], chords: [], chordLine: -1, chordMod: 4, arr: [], wired: {}, padWired: false, pumpWired: false, probs };
+  lines.forEach((l, i) => { const m = l.match(/^BPM\s*=\s*([\d.]+)/); if (m) { s.bpm = parseFloat(m[1]); s.bpmLine = i; } });
+  if (s.bpm == null) err(-1, "BPM is missing. Add a line like BPM = 128.");
+  else if (!(s.bpm >= 50 && s.bpm <= 220)) { err(s.bpmLine, `BPM ${s.bpm} is out of range (50–220).`); s.bpm = Math.min(220, Math.max(50, s.bpm || 120)); }
+
+  const block = re => {
+    const st = lines.findIndex(l => re.test(l));
+    if (st < 0) return null;
+    let e = st;
+    if (!/[\]}]\s*$/.test(lines[st].replace(/#.*$/, "")) || lines[st].trim().endsWith("[") || lines[st].trim().endsWith("{")) { e = st + 1; while (e < lines.length && !/^[\]}]/.test(lines[e])) e++; }
+    return [st, Math.min(e, lines.length - 1)];
+  };
+  const pb = block(/^PATTERNS\s*=\s*\{/);
+  if (!pb) err(-1, "PATTERNS = { ... } is missing.");
+  else for (let i = pb[0]; i <= pb[1]; i++) for (const m of lines[i].matchAll(/"([\w-]+)"\s*:\s*"([^"]*)"/g)) {
+    const [, name, p] = m;
+    if (!/^[x.]{16}$/.test(p)) err(i, `Pattern "${name}" needs exactly 16 steps of x and . (it has ${p.length}).`);
+    s.patterns[name] = /^[x.]{16}$/.test(p) ? p : (p.replace(/[^x.]/g, ".") + "................").slice(0, 16);
+    s.patLine[name] = i; if (!s.patOrder.includes(name)) s.patOrder.push(name);
+  }
+  const cl = lines.findIndex(l => /^CHORDS\s*=/.test(l));
+  if (cl < 0) err(-1, "CHORDS = [[...], ...] is missing.");
+  else {
+    let txt = "", depth = 0, i = cl, started = false;
+    for (; i < lines.length; i++) { const t = lines[i].replace(/#.*$/, ""); txt += t; for (const ch of t) { if (ch === "[") { depth++; started = true; } if (ch === "]") depth--; } if (started && depth <= 0) break; }
+    s.chordLine = cl;
+    for (const m of txt.matchAll(/\[\s*(-?\d+(?:\s*,\s*-?\d+)*)\s*,?\s*\]/g)) s.chords.push(m[1].split(",").map(Number));
+    if (!s.chords.length) err(cl, "CHORDS has no chords. Each chord is a list of MIDI notes, like [57, 60, 64].");
+  }
+  const modM = code.match(/CHORDS\[\s*bar\s*%\s*(\d+)\s*\]/);
+  if (modM) s.chordMod = +modM[1];
+  const ab = block(/^ARRANGEMENT\s*=\s*\[/);
+  if (!ab) err(-1, "ARRANGEMENT = [ ... ] is missing.");
+  else for (let i = ab[0]; i <= ab[1]; i++) for (const m of lines[i].matchAll(/\(\s*"([^"]+)"\s*,\s*(\d+)\s*,\s*\[([^\]]*)\]\s*\)/g)) {
+    const bars = +m[2];
+    const parts = [...m[3].matchAll(/"([^"]+)"/g)].map(x => x[1]);
+    if (bars < 1 || bars > 64) { err(i, `Section "${m[1]}" has ${bars} bars. Use 1–64.`); continue; }
+    s.arr.push({ name: m[1], bars, parts, line: i });
+  }
+  if (ab && !s.arr.length) err(ab[0], 'ARRANGEMENT has no sections. Add one like ("intro", 4, ["kick", "hat"]).');
+  lines.forEach((l, i) => {
+    const m = l.match(/^\s*if\s+hits\(\s*"([\w-]+)"/); if (m && !(m[1] in s.wired)) s.wired[m[1]] = i;
+    if (/^\s*if\s+"pad"\s+in\s+parts/.test(l)) s.padWired = true;
+    if (/\bpump\(\s*len/.test(l) && !/^\s*def/.test(l)) s.pumpWired = true;
+  });
+  if (s.chords.length && s.chords.length < s.chordMod) err(s.chordLine, `CHORDS[bar % ${s.chordMod}] needs at least ${s.chordMod} chords (found ${s.chords.length}). Python would stop with an IndexError.`);
+  if ("lead" in s.wired && s.chords.some(c => c.length < 3)) err(s.chordLine, "The lead plays chord[step % 3], so every chord needs at least 3 notes.");
+  const seen = new Set();
+  for (const sec of s.arr) for (const p of sec.parts) {
+    if (seen.has(sec.name + p)) continue; seen.add(sec.name + p);
+    if (p === "pad") continue;
+    if (p in s.wired && !(p in s.patterns)) err(sec.line, `"${p}" plays in "${sec.name}" but PATTERNS has no "${p}". Python would stop with a KeyError.`);
+    else if (!(p in s.wired)) warn(sec.line, `"${p}" is listed in "${sec.name}" but no if hits("${p}", ...) line plays it, so it stays silent.`);
+    else if (!KNOWN.includes(p)) warn(s.wired[p], `"${p}" has no built-in browser sound. Its line still lights up, and Python plays whatever your add() line says.`);
+  }
+  s.totalBars = s.arr.reduce((a, x) => a + x.bars, 0);
+  s.ok = !probs.some(p => p.sev === "e") && s.arr.length > 0 && s.bpm;
+  s.step = 15 / (s.bpm || 120);
+  s.length = s.totalBars * 16 * s.step;
+  if (parseCache.size > 200) parseCache.clear();
+  parseCache.set(code, s);
+  return s;
+}
+const fmt = t => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+const fmtShort = t => `${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, "0")}`;
+
+/* ================= storage: claude db when hosted on claude.ai, browser storage elsewhere (GitHub Pages) ================= */
+const LS_KEY = "pybeat.tracks.v1";
+const store = {
+  mode: "pending", db: null, tracks: [], ready: false, readOnly: false,
+  lsRead() { try { const v = JSON.parse(localStorage.getItem(LS_KEY) || "null"); return Array.isArray(v) ? v : null; } catch { return null; } },
+  lsWrite() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.tracks)); return true; } catch { return false; } },
+  async init(onChange) {
+    this.onChange = onChange;
+    let db = null;
+    if (window.claude && typeof window.claude.use === "function") {
+      try { db = await window.claude.use("db"); } catch { db = null; }
+    }
+    if (db) {
+      this.mode = "db"; this.db = db;
+      try {
+        db.collection("tracks").onSnapshot(snap => {
+          this.tracks = snap.docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() }));
+          this.ready = true; this.onChange();
+        }, e => { if (e && e.code !== "unavailable") { toast("Lost connection to the library. Changes now stay in this browser."); this.useLocal(); } });
+      } catch { this.useLocal(); }
+      try { const user = await window.claude.use("user"); const can = user && user.can ? await user.can("data.write") : null; if (can === false) { this.readOnly = true; this.onChange(); } } catch {}
+    } else this.useLocal();
+  },
+  useLocal() {
+    this.mode = "local"; this.db = null;
+    const saved = this.lsRead();
+    if (saved) this.tracks = saved;
+    else { const now = new Date().toISOString(); this.tracks = TEMPLATES.slice(0, 2).map((t, i) => ({ id: "demo-" + t.id, name: t.title, code: t.code(t.title), createdAt: now, updatedAt: now })); this.lsWrite(); }
+    this.ready = true; this.onChange();
+  },
+  async save(t) {
+    const rec = { name: t.name, code: t.code, createdAt: t.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+    if (this.mode === "db") {
+      try { await this.db.collection("tracks").doc(t.id).set(rec); }
+      catch (e) { if (e && e.code === "invalid_argument") { this.readOnly = true; this.onChange(); throw new Error("You can open these tracks but not save changes here. Download the .py to keep your edits."); } if (e && e.code === "quota_exceeded") throw new Error("The library is full. Delete a track to make room."); throw new Error("Couldn't save. Check your connection and try again."); }
+    } else {
+      const i = this.tracks.findIndex(x => x.id === t.id);
+      const full = { id: t.id, ...rec };
+      if (i >= 0) this.tracks[i] = full; else this.tracks.push(full);
+      if (!this.lsWrite()) throw new Error("This browser blocked storage, so the track couldn't be saved. Download the .py instead.");
+      this.onChange();
+    }
+    return rec;
+  },
+  async remove(id) {
+    if (this.mode === "db") { try { await this.db.collection("tracks").doc(id).delete(); } catch { throw new Error("Couldn't delete the track. Try again."); } }
+    else { this.tracks = this.tracks.filter(x => x.id !== id); this.lsWrite(); this.onChange(); }
+  },
+};
+const newId = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* ================= downloads: claude downloads capability, or a normal browser download ================= */
+let dlCap; // undefined = unknown, null = not on claude.ai
+async function getDl() {
+  if (dlCap !== undefined) return dlCap;
+  dlCap = null;
+  if (window.claude && typeof window.claude.use === "function") { try { dlCap = await window.claude.use("downloads"); } catch { dlCap = null; } }
+  return dlCap;
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zip(files) { // files: [{name, text}] → Uint8Array (stored, no compression)
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, 0, true); h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, 0, true); c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const cSize = central.reduce((a, x) => a + x.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cSize, true); e.setUint32(16, off, true);
+  const all = [...parts, ...central, new Uint8Array(e.buffer)], out = new Uint8Array(all.reduce((a, x) => a + x.length, 0));
+  let p = 0; for (const x of all) { out.set(x, p); p += x.length; } return out;
+}
+function uniqueNames(files) { const seen = {}; return files.map(f => { let n = f.name, i = 2; while (seen[n]) n = f.name.replace(/\.py$/, `_${i++}.py`); seen[n] = 1; return { ...f, name: n }; }); }
+async function offerFiles(files, zipName) {
+  const dl = await getDl();
+  if (dl) { // claude.ai: .py isn't an allowed download type, so the scripts travel in a zip
+    try { await dl.save({ filename: zipName, data: zip(uniqueNames(files)) }); toast("Saved. The .py is inside the zip."); }
+    catch (e) { if (e && e.code === "declined") return; toast(e && e.code === "rate_limited" ? "A save prompt is already open." : "Downloads aren't available here. Use Copy instead."); }
+    return;
+  }
+  // GitHub Pages or any normal site: a plain download works
+  const single = files.length === 1;
+  const blob = single ? new Blob([files[0].text], { type: "text/x-python" }) : new Blob([zip(uniqueNames(files))], { type: "application/zip" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = single ? files[0].name : zipName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ================= UI helpers ================= */
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+function modal(html, onOpen) {
+  return new Promise(resolve => {
+    const scrim = $("scrim"), m = $("modal");
+    m.innerHTML = html; scrim.hidden = false;
+    const done = v => { scrim.hidden = true; m.innerHTML = ""; document.removeEventListener("keydown", key); resolve(v); };
+    const key = e => { if (e.key === "Escape") done(null); };
+    document.addEventListener("keydown", key);
+    scrim.onclick = e => { if (e.target === scrim) done(null); };
+    m.querySelectorAll("[data-v]").forEach(b => b.onclick = () => done(b.dataset.v));
+    if (onOpen) onOpen(m, done);
+    (m.querySelector("[autofocus]") || m.querySelector("button"))?.focus();
+  });
+}
+
+/* ================= state ================= */
+const ta = $("ta"), hl = $("hl");
+let cur = null;           // { id, name, code(saved), createdAt }
+let song = null;          // last parsed song of editor (may have errors)
+let playSong = null;      // last song that parsed cleanly; what the engine plays
+let lines = [], lineEls = [], refs = {};
+const muted = new Set();
+let loopOn = true;
+const isDirty = () => cur && (ta.value !== cur.code || $("tname").value.trim() !== cur.name);
+
+/* ================= highlighter ================= */
+const KW = new Set(["def","for","in","if","elif","else","return","import","from","with","as","and","or","not","while","True","False","None","print","range","sum","len","int","lambda","class","pass","break","continue","min","max","abs"]);
+function hlLine(line) {
+  const re = /("[^"\n]*"|'[^'\n]*'|#.*$|\b\d+(?:\.\d+)?(?:e-?\d+)?\b|\b[A-Za-z_]\w*\b)/g;
+  let out = "", i = 0, m;
+  while ((m = re.exec(line))) {
+    out += esc(line.slice(i, m.index));
+    const t = m[0]; let c = "";
+    if (t[0] === '"' || t[0] === "'") c = "s"; else if (t[0] === "#") c = "c"; else if (/^\d/.test(t)) c = "n";
+    else if (KW.has(t)) c = "k"; else if (line[m.index + t.length] === "(") c = "f";
+    out += c ? `<span class="${c}">${esc(t)}</span>` : esc(t);
+    i = m.index + t.length;
+  }
+  return out + esc(line.slice(i));
+}
+const colorOf = p => `var(--${["kick","clap","roll","hat","bass","lead","pad"].includes(p) ? p : "other"})`;
+function renderEditor() {
+  const code = ta.value;
+  song = parse(code);
+  if (song.ok) playSong = song;
+  lines = code.split("\n");
+  const patByLine = {}; for (const [k, i] of Object.entries(song.patLine)) patByLine[i] = k;
+  const errLines = new Set(song.probs.filter(p => p.sev === "e" && p.line >= 0).map(p => p.line));
+  let html = "", inDoc = false;
+  lines.forEach((text, i) => {
+    let body;
+    const tq = (text.match(/"""/g) || []).length;
+    if (inDoc || (tq % 2 === 1 && text.trim().startsWith('"""')) || (tq >= 2 && text.trim().startsWith('"""'))) {
+      body = `<span class="s">${esc(text)}</span>`;
+      if (tq % 2 === 1) inDoc = !inDoc;
+    } else if (i in patByLine) {
+      const m = text.match(/^(.*?"[\w-]+"\s*:\s*)"([^"]*)"(.*)$/);
+      if (m) body = hlLine(m[1]) + `<span class="s">"</span>` + [...m[2]].map((ch, k) => `<span class="pc${ch === "x" ? " x" : ""}" data-k="${k}">${esc(ch)}</span>`).join("") + `<span class="s">"</span>` + hlLine(m[3]);
+      else body = hlLine(text);
+    } else body = hlLine(text);
+    html += `<div class="ln${errLines.has(i) ? " err" : ""}"><span class="no">${i + 1}</span><span class="src">${body || " "}</span><span class="badge" hidden></span></div>`;
+  });
+  hl.innerHTML = html;
+  lineEls = [...hl.children];
+  for (const [k, i] of Object.entries(song.patLine)) lineEls[i]?.style.setProperty("--c", colorOf(k));
+  const find = (re, from = 0) => { for (let i = from; i < lines.length; i++) if (re.test(lines[i])) return i; return -1; };
+  const nextCode = i => { for (let j = i + 1; j < lines.length; j++) if (lines[j].trim()) return j; return -1; };
+  refs = {
+    forSec: find(/^\s*for\s+\w+\s*,\s*\w+\s*,\s*\w+\s+in\s+ARRANGEMENT/), forBar: find(/^\s*for\s+bar\s+in\s+range/), forStep: find(/^\s*for\s+step\s+in\s+range/),
+    chord: find(/^\s*chord\s*=\s*CHORDS\[/), tadd: find(/^\s*t\s*\+=\s*BAR/),
+    padIf: find(/^\s*if\s+"pad"\s+in\s+parts/), padCall: find(/=\s*pad\(/), pumpCall: find(/\*=\s*pump\(/), padAdd: find(/^\s*add\(sound,\s*t\)/),
+    def: {}, hitIf: {}, hitAdd: {},
+  };
+  for (const p of [...KNOWN, "pad", "pump", ...Object.keys(song.wired)]) { const d = find(new RegExp(`^def\\s+${p === "roll" ? "clap" : p}\\(`)); if (d >= 0) refs.def[p] = d; }
+  for (const [p, i] of Object.entries(song.wired)) { refs.hitIf[p] = i; refs.hitAdd[p] = nextCode(i); }
+  if (lastPos) applyPos(lastPos, false);
+  renderProblems(); renderMeta(); renderLanes(); renderTimeline();
+}
+
+/* ================= right rack ================= */
+function renderProblems() {
+  const box = $("probs"), ps = song.probs;
+  const ne = ps.filter(p => p.sev === "e").length, nw = ps.length - ne;
+  $("sProb").innerHTML = ne ? `<span class="e">● ${ne} error${ne > 1 ? "s" : ""}</span>${nw ? ` <span class="w">● ${nw} warning${nw > 1 ? "s" : ""}</span>` : ""}${playSong && playSong !== song ? " · playing last good version" : ""}`
+    : nw ? `<span class="w">● ${nw} warning${nw > 1 ? "s" : ""}</span>` : `<span class="g">● ready to run</span>`;
+  if (!ps.length) { box.innerHTML = `<div class="okline">✓ No problems. Python will run this as-is.</div>`; return; }
+  box.innerHTML = `<div class="probs">${ps.map((p, i) => `<button type="button" class="prob ${p.sev}" data-i="${i}"><span class="lnno">${p.line >= 0 ? "L" + (p.line + 1) : "—"}</span><span>${esc(p.msg)}</span></button>`).join("")}</div>`;
+  box.querySelectorAll(".prob").forEach(b => b.onclick = () => { const p = ps[+b.dataset.i]; if (p.line >= 0) gotoLine(p.line); });
+}
+function gotoLine(i) {
+  let pos = 0; for (let k = 0; k < i; k++) pos += lines[k].length + 1;
+  ta.focus(); ta.setSelectionRange(pos, pos + lines[i].length);
+  const sc = $("edscroll"); sc.scrollTop = Math.max(0, i * 20 - sc.clientHeight / 3);
+  updateCursor();
+}
+function renderMeta() {
+  const s = song;
+  $("tMeta").textContent = s.bpm ? `${s.bpm} BPM · ${s.totalBars} bars · ${fmt(s.length)} · ${s.arr.length} section${s.arr.length === 1 ? "" : "s"}` : "no BPM";
+  const st = $("tState");
+  if (store.readOnly) { st.className = ""; st.textContent = "view only"; }
+  else if (isDirty()) { st.className = "dirty"; st.textContent = "● unsaved changes"; }
+  else { st.className = "saved"; st.textContent = cur?.updatedAt ? "saved " + ago(cur.updatedAt) : "saved"; }
+  $("saveBtn").disabled = store.readOnly || !isDirty();
+  $("tLen").textContent = fmt((playSong || s).length || 0);
+  renderList();
+}
+function ago(iso) {
+  const d = (Date.now() - Date.parse(iso)) / 1000;
+  if (!(d >= 0)) return "";
+  if (d < 60) return "just now"; if (d < 3600) return Math.floor(d / 60) + " min ago"; if (d < 86400) return Math.floor(d / 3600) + " h ago";
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+let laneSig = "";
+function renderLanes() {
+  const s = playSong || song;
+  const parts = [...s.patOrder.filter(p => p in s.wired), ...(s.padWired ? ["pad"] : [])];
+  const sig = parts.map(p => p + (s.patterns[p] || "")).join("|") + [...muted].join();
+  if (sig === laneSig) return; laneSig = sig;
+  $("lanes").innerHTML = parts.map(p => `<div class="lane${p === "pad" ? " pad" : ""}${muted.has(p) ? " muted" : ""}" data-p="${p}" style="--c:${colorOf(p)}">
+      <button type="button" class="nmb" aria-pressed="${muted.has(p)}" title="${muted.has(p) ? "Unmute" : "Mute"} ${esc(p)}">${esc(p)}</button>
+      <div class="cells">${[...(p === "pad" ? "x..............." : s.patterns[p])].map(c => `<i class="${c === "x" && p !== "pad" ? "x" : ""}"></i>`).join("")}</div></div>`).join("")
+    || `<p class="hint">No playable parts yet. Add an if hits("kick", parts, step) line inside the step loop.</p>`;
+  $("lanes").querySelectorAll(".nmb").forEach(b => b.onclick = () => {
+    const p = b.closest(".lane").dataset.p;
+    muted.has(p) ? muted.delete(p) : muted.add(p);
+    engine.setMute(p, muted.has(p)); laneSig = ""; renderLanes(); if (lastPos) applyPos(lastPos, false);
+  });
+}
+let segEls = [];
+function renderTimeline() {
+  const s = playSong || song, tl = $("timeline");
+  const sig = s.arr.map(a => a.name + a.bars).join();
+  if (tl.dataset.sig === sig) return; tl.dataset.sig = sig;
+  tl.innerHTML = s.arr.map((a, i) => `<button type="button" class="seg" style="--bars:${a.bars}" data-i="${i}" aria-label="Jump to ${esc(a.name)}"><div class="fill"></div><span>${esc(a.name)}</span></button>`).join("");
+  segEls = [...tl.children];
+  segEls.forEach(b => b.onclick = () => { const i = +b.dataset.i; const bars = s.arr.slice(0, i).reduce((x, a) => x + a.bars, 0); engine.seek(bars * 16); });
+}
+
+/* ================= live highlighting ================= */
+let marked = [], lastPos = null;
+function locate(s, g) {
+  const total = s.totalBars * 16; if (!total) return null;
+  g = ((g % total) + total) % total;
+  const gbar = Math.floor(g / 16); let acc = 0;
+  for (let i = 0; i < s.arr.length; i++) { if (gbar < acc + s.arr[i].bars) return { g, si: i, bar: gbar - acc, step: g % 16 }; acc += s.arr[i].bars; }
+  return null;
+}
+function badge(i, text, y) { const el = lineEls[i]; if (!el) return; const b = el.lastChild; b.hidden = false; b.textContent = text; b.className = "badge" + (y ? " y" : ""); marked.push(() => { b.hidden = true; }); }
+function cls(i, c) { const el = lineEls[i]; if (!el) return; el.classList.add(c); marked.push(() => el.classList.remove(c)); }
+function flash(i, part) { const el = lineEls[i]; if (!el || i < 0) return; el.style.setProperty("--c", colorOf(part)); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+function applyPos(pos, fire) {
+  const s = playSong; if (!s || !pos || !s.arr[pos.si]) return;
+  lastPos = pos;
+  marked.forEach(f => f()); marked = [];
+  const sec = s.arr[pos.si], parts = sec.parts, chord = s.chords[pos.bar % s.chordMod] || [];
+  const live = song === s; // editor text matches what is playing → line numbers are trustworthy
+  if (live) {
+    [refs.forSec, refs.forBar, refs.forStep].forEach(i => cls(i, "run"));
+    badge(refs.forSec, `section = "${sec.name}"`); badge(refs.forBar, `bar ${pos.bar + 1}/${sec.bars}`); badge(refs.forStep, `step ${pos.step}`);
+    badge(refs.chord, chordName(chord), true);
+    cls(sec.line, "cur");
+    for (const [p, li] of Object.entries(s.patLine)) {
+      if (!parts.includes(p)) cls(li, "dim");
+      const c = lineEls[li]?.querySelector(`.pc[data-k="${pos.step}"]`);
+      if (c && parts.includes(p) && !muted.has(p)) { c.classList.add("now"); marked.push(() => c.classList.remove("now")); }
+    }
+  }
+  $("nSec").textContent = sec.name; $("nBar").textContent = `${pos.bar + 1}/${sec.bars}`; $("nChord").textContent = chordName(chord); $("nStep").textContent = pos.step + 1;
+  [...$("beats").children].forEach((b, i) => b.classList.toggle("on", i === Math.floor(pos.step / 4)));
+  segEls.forEach((b, i) => b.classList.toggle("on", i === pos.si));
+  $("lanes").querySelectorAll(".lane").forEach(l => {
+    const p = l.dataset.p, on = parts.includes(p);
+    l.classList.toggle("off", !on);
+    l.querySelectorAll("i").forEach((c, k) => { c.classList.toggle("ph", k === pos.step); c.classList.toggle("hit", on && k === pos.step && !muted.has(p)); });
+  });
+  $("tNow").textContent = fmt(pos.g * s.step);
+  if (!fire || !live) return;
+  if (pos.step === 0 && s.padWired && parts.includes("pad")) {
+    [refs.padIf, refs.padCall, refs.def.pad, refs.padAdd].forEach(i => flash(i, "pad"));
+    if (s.pumpWired && parts.includes("kick")) { flash(refs.pumpCall, "kick"); flash(refs.def.pump, "kick"); }
+  }
+  for (const p of Object.keys(s.wired)) {
+    if (parts.includes(p) && s.patterns[p] && s.patterns[p][pos.step] === "x") {
+      flash(refs.hitIf[p], p); flash(refs.hitAdd[p], p); if (refs.def[p] != null) flash(refs.def[p], p);
+    }
+  }
+  if (pos.step === 15) flash(refs.tadd, "pad");
+}
+
+/* ================= audio engine (Web Audio versions of the numpy instruments) ================= */
+const engine = (() => {
+  let ctx, master, comp, noise, buses = {};
+  let scrolledFor = null, playing = false, nextT = 0, lastEvT = 0, g = 0, timer = 0, raf = 0, queue = [], vol = 0.8;
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  function init() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+    master = ctx.createGain(); master.gain.value = vol;
+    comp.connect(master).connect(ctx.destination);
+    noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  function bus(p) { if (!buses[p]) { buses[p] = ctx.createGain(); buses[p].gain.value = muted.has(p) ? 0 : 1; buses[p].connect(comp); } return buses[p]; }
+  function env(t, peak, tau, len, out) { const gn = ctx.createGain(); gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(peak, t + 0.002); gn.gain.setTargetAtTime(0, t + 0.002, tau); gn.connect(out); return gn; }
+  function noiseHit(t, type, f, q, tau, v, len, out) {
+    const src = ctx.createBufferSource(); src.buffer = noise; src.playbackRate.value = 0.9 + Math.random() * 0.2;
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    src.connect(fl).connect(env(t, v, tau, len, out)); src.start(t, Math.random() * 0.5); src.stop(t + len);
+  }
+  const inst = {
+    kick(t, o) { const os = ctx.createOscillator(); os.frequency.setValueAtTime(185, t); os.frequency.setTargetAtTime(45, t, 0.025); os.connect(env(t, 1.0, 0.125, 0.4, o)); os.start(t); os.stop(t + 0.42); },
+    clap(t, o, v = 1) { noiseHit(t, "bandpass", 1500, 0.8, 0.05, 0.75 * v, 0.2, o); },
+    hat(t, o) { noiseHit(t, "highpass", 7500, 0.7, 0.011, 0.32, 0.06, o); },
+    bass(t, o, note, st) { const os = ctx.createOscillator(); os.type = "sawtooth"; os.frequency.value = hz(note); const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 650; f.Q.value = 3; os.connect(f).connect(env(t, 0.4, 0.11, st * 2, o)); os.start(t); os.stop(t + st * 2 + 0.05); },
+    lead(t, o, note, st) { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 3200; const e = env(t, 0.11, 0.1, st, o); f.connect(e);
+      for (const det of [0, 14]) { const os = ctx.createOscillator(); os.type = "sawtooth"; os.frequency.value = hz(note); os.detune.value = det; os.connect(f); os.start(t); os.stop(t + st + 0.05); } },
+    pad(t, o, chord, dur, pump, beat) {
+      const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1150;
+      const gn = ctx.createGain(); gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(0.05, t + 0.03); gn.gain.setValueAtTime(0.05, t + dur - 0.03); gn.gain.linearRampToValueAtTime(0, t + dur);
+      const pg = ctx.createGain(); pg.gain.setValueAtTime(1, t);
+      if (pump) for (let b = 0; b < 4; b++) { pg.gain.setValueAtTime(0.25, t + b * beat); pg.gain.setTargetAtTime(1, t + b * beat, 1 / 14); }
+      f.connect(gn).connect(pg).connect(o);
+      for (const n of chord) for (const det of [0, 7]) { const os = ctx.createOscillator(); os.type = "sawtooth"; os.frequency.value = hz(n); os.detune.value = det; os.connect(f); os.start(t); os.stop(t + dur + 0.02); }
+    },
+  };
+  function playStep(s, gi, t) {
+    const pos = locate(s, gi); if (!pos) return;
+    const sec = s.arr[pos.si], parts = sec.parts, chord = s.chords[pos.bar % s.chordMod] || [], st = s.step;
+    if (pos.step === 0 && s.padWired && parts.includes("pad") && chord.length) inst.pad(t, bus("pad"), chord, 16 * st, s.pumpWired && parts.includes("kick"), 4 * st);
+    for (const p of Object.keys(s.wired)) {
+      if (!parts.includes(p) || !s.patterns[p] || s.patterns[p][pos.step] !== "x") continue;
+      const o = bus(p);
+      if (p === "kick") inst.kick(t, o);
+      else if (p === "clap") inst.clap(t, o);
+      else if (p === "roll") inst.clap(t, o, (pos.bar + 1) / sec.bars);
+      else if (p === "hat") inst.hat(t, o);
+      else if (p === "bass" && chord.length) inst.bass(t, o, chord[0] - 12, st);
+      else if (p === "lead" && chord.length) inst.lead(t, o, chord[pos.step % 3] + 12, st);
+    }
+  }
+  function sched() {
+    const s = playSong; if (!s || !s.totalBars) return;
+    const total = s.totalBars * 16;
+    while (nextT < ctx.currentTime + 0.12) {
+      if (g >= total) { if (loopOn) g = 0; else { queue.push({ t: nextT, end: true }); clearInterval(timer); timer = 0; return; } }
+      playStep(s, g, nextT); queue.push({ t: nextT, g });
+      nextT += s.step; g++;
+    }
+  }
+  function frame() {
+    const now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+    while (queue.length && queue[0].t <= now) { const ev = queue.shift(); if (ev.end) { stop(); g = 0; applyPos(locate(playSong, 0), false); paintFill(0); } else { lastEvT = ev.t; applyPos(locate(playSong, ev.g), true); } }
+    const s = playSong;
+    if (s && lastPos && playing) {
+      const frac = Math.max(0, Math.min(1, (now - lastEvT) / s.step));
+      let acc = 0; const gf = lastPos.g + frac;
+      segEls.forEach((b, i) => { const len = (s.arr[i]?.bars || 0) * 16; b.firstChild.style.width = Math.min(100, Math.max(0, (gf - acc) / len * 100)) + "%"; acc += len; });
+    }
+    if (playing) raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    if (!playSong) { toast("Fix the errors in Problems first. There's no playable version yet."); return; }
+    init(); ctx.resume();
+    playing = true; nextT = ctx.currentTime + 0.06; queue = [];
+    if (!timer) timer = setInterval(sched, 25); sched();
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+    $("play").textContent = "❚❚ PAUSE";
+    if (!scrolledFor || scrolledFor !== cur?.id) { scrolledFor = cur?.id; const pl = playSong.patLine[playSong.patOrder[0]]; const sc = $("edscroll"); if (pl != null && document.activeElement !== ta) sc.scrollTo({ top: Math.max(0, (pl - 2) * 20), behavior: "smooth" }); }
+  }
+  function stop() {
+    playing = false; clearInterval(timer); timer = 0; queue = []; cancelAnimationFrame(raf);
+    if (lastPos) g = lastPos.g + 1;
+    $("play").textContent = "▶ PLAY";
+  }
+  return {
+    toggle() { playing ? stop() : start(); },
+    stop, start, get playing() { return playing; },
+    seek(gi) { g = gi; queue = []; if (ctx) nextT = ctx.currentTime + 0.04; const p = locate(playSong || song, gi); if (p) { applyPos(p, false); paintFill(p.g); } if (!playing) start(); },
+    reset() { stop(); g = 0; lastPos = null; },
+    setMute(p, m) { if (buses[p]) buses[p].gain.setTargetAtTime(m ? 0 : 1, ctx.currentTime, 0.01); },
+    setVol(v) { vol = v; if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02); },
+  };
+})();
+function paintFill(gf) { const s = playSong || song; let acc = 0; segEls.forEach((b, i) => { const len = (s.arr[i]?.bars || 0) * 16; b.firstChild.style.width = Math.min(100, Math.max(0, (gf - acc) / len * 100)) + "%"; acc += len; }); }
+
+/* ================= library ================= */
+function renderList() {
+  const q = $("search").value.trim().toLowerCase();
+  const all = [...store.tracks].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  const items = all.filter(t => !q || (t.name || "").toLowerCase().includes(q));
+  $("libCount").textContent = `${all.length} track${all.length === 1 ? "" : "s"}`;
+  const list = $("list");
+  if (!store.ready) { list.innerHTML = `<div class="lib-empty">Loading tracks…</div>`; return; }
+  if (!items.length) { list.innerHTML = `<div class="lib-empty">${all.length ? "No tracks match that search." : "No tracks yet. Press New to start one, or open a .py file."}</div>`; return; }
+  list.innerHTML = items.map(t => {
+    const s = parse(t.code || ""), on = cur && cur.id === t.id;
+    const dirty = on && isDirty();
+    return `<button type="button" class="item${on ? " on" : ""}" data-id="${esc(t.id)}" aria-current="${on}">
+      <span class="nm">${dirty ? '<i class="dot" title="Unsaved changes"></i>' : ""}<span>${esc(on ? $("tname").value || t.name : t.name)}</span></span>
+      <span class="mt">${s.bpm || "?"} BPM · ${fmtShort(s.length || 0)} · ${ago(t.updatedAt)}</span>
+      <span class="bars">${s.arr.map(a => `<i style="flex:${a.bars}"></i>`).join("")}</span></button>`;
+  }).join("");
+  list.querySelectorAll(".item").forEach(b => b.onclick = () => openTrack(b.dataset.id));
+}
+async function confirmLeave() {
+  if (!isDirty()) return true;
+  const v = await modal(`<h3>Save changes to “${esc($("tname").value || cur.name)}”?</h3><p>Your edits haven't been saved yet.</p>
+    <div class="foot"><button class="btn ghost" data-v="cancel">Cancel</button><button class="btn" data-v="discard">Discard</button><button class="btn primary" data-v="save" autofocus>Save</button></div>`);
+  if (v === "save") return await saveCurrent();
+  return v === "discard";
+}
+async function openTrack(id, force) {
+  if (cur && cur.id === id) return;
+  if (!force && !(await confirmLeave())) return;
+  const t = store.tracks.find(x => x.id === id); if (!t) return;
+  engine.reset();
+  cur = { ...t };
+  $("tname").value = t.name; ta.value = t.code || "";
+  playSong = null;
+  showWork(true);
+  $("edscroll").scrollTop = 0;
+  renderEditor();
+  const p = playSong ? locate(playSong, 0) : null; if (p) applyPos(p, false); paintFill(0);
+  try { localStorage.setItem("pybeat.last", id); } catch {}
+}
+function showWork(on) { $("workMain").hidden = !on; $("workMain").style.display = on ? "contents" : "none"; $("workEmpty").hidden = on; }
+async function saveCurrent() {
+  if (!cur) return false;
+  if (store.readOnly) { toast("Saving is off for you here. Download the .py to keep your edits."); return false; }
+  const name = $("tname").value.trim() || "Untitled track"; $("tname").value = name;
+  try {
+    const rec = await store.save({ id: cur.id, name, code: ta.value, createdAt: cur.createdAt });
+    Object.assign(cur, rec);
+    renderMeta(); toast("Saved"); return true;
+  } catch (e) { toast(e.message); return false; }
+}
+async function createTrack(name, code, quiet) {
+  if (store.readOnly) { toast("Saving is off for you here."); return; }
+  const t = { id: newId(), name, code, createdAt: new Date().toISOString() };
+  try { await store.save(t); } catch (e) { toast(e.message); return; }
+  if (!store.tracks.find(x => x.id === t.id)) store.tracks.push({ ...t, updatedAt: new Date().toISOString() });
+  await openTrack(t.id, true);
+  if (!quiet) toast(`Created “${name}”`);
+}
+function tplCards(sel) {
+  return TEMPLATES.map(t => `<button type="button" class="tpl" role="radio" aria-checked="${t.id === sel}" data-t="${t.id}"><b>${esc(t.title)}</b><span>${esc(t.desc)}</span><code>${esc(t.tag)}</code></button>`).join("");
+}
+async function newTrackDialog(tplId = "neon") {
+  if (!(await confirmLeave())) return;
+  let sel = tplId;
+  const v = await modal(`<h3>New track</h3>
+    <div class="field"><label class="label" for="nName">Name</label><input id="nName" maxlength="80" value="${esc(TEMPLATES.find(t => t.id === sel).title)}" autofocus></div>
+    <div class="field"><span class="label">Start from</span><div class="tpls" id="nTpls" role="radiogroup">${tplCards(sel)}</div></div>
+    <div class="foot"><button class="btn ghost" data-v="">Cancel</button><button class="btn primary" id="nGo">Create track</button></div>`, (m, done) => {
+      const name = m.querySelector("#nName"); let touched = false;
+      name.oninput = () => touched = true;
+      m.querySelectorAll(".tpl").forEach(b => b.onclick = () => { sel = b.dataset.t; m.querySelectorAll(".tpl").forEach(x => x.setAttribute("aria-checked", x.dataset.t === sel)); if (!touched) name.value = TEMPLATES.find(t => t.id === sel).title; });
+      const go = () => done("go:" + (name.value.trim() || "Untitled track"));
+      m.querySelector("#nGo").onclick = go; name.onkeydown = e => { if (e.key === "Enter") go(); };
+      setTimeout(() => name.select(), 0);
+    });
+  if (!v || !v.startsWith("go:")) return;
+  const name = v.slice(3), t = TEMPLATES.find(x => x.id === sel);
+  await createTrack(name, t.code(name));
+}
+async function importFiles(files) {
+  let n = 0, last = null;
+  for (const f of files) {
+    if (!/\.(py|txt)$/i.test(f.name) && f.type && !/text|python/.test(f.type)) { toast(`${f.name} isn't a .py file.`); continue; }
+    if (f.size > 400000) { toast(`${f.name} is too large to open (over 400 KB).`); continue; }
+    const text = (await f.text()).replace(/\r\n?/g, "\n");
+    const name = f.name.replace(/\.(py|txt)$/i, "").replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim() || "Imported track";
+    if (n === 0 && !(await confirmLeave())) return;
+    const t = { id: newId(), name, code: text, createdAt: new Date().toISOString() };
+    try { await store.save(t); } catch (e) { toast(e.message); return; }
+    if (!store.tracks.find(x => x.id === t.id)) store.tracks.push({ ...t, updatedAt: t.createdAt });
+    last = t; n++;
+  }
+  if (last) { cur = null; await openTrack(last.id, true); toast(n === 1 ? `Opened “${last.name}”` : `Added ${n} tracks`); const s = parse(last.code); if (!s.ok) toast("Opened. This file doesn't follow the PATTERNS / ARRANGEMENT layout yet, so see Problems."); }
+}
+
+/* ================= wiring ================= */
+let renderQueued = false;
+ta.addEventListener("input", () => { if (!renderQueued) { renderQueued = true; requestAnimationFrame(() => { renderQueued = false; renderEditor(); }); } });
+ta.addEventListener("keydown", e => {
+  if (e.key === "Tab" && !e.ctrlKey && !e.metaKey) { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("    ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); }
+  else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    const s = ta.selectionStart, before = ta.value.slice(0, s), lineStart = before.lastIndexOf("\n") + 1, line = before.slice(lineStart);
+    const ind = line.match(/^\s*/)[0] + (/:\s*(#.*)?$/.test(line) ? "    " : "");
+    e.preventDefault(); ta.setRangeText("\n" + ind, s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input"));
+  }
+});
+function updateCursor() { const before = ta.value.slice(0, ta.selectionStart); const ln = before.split("\n"); $("sCursor").textContent = `Ln ${ln.length}, Col ${ln[ln.length - 1].length + 1}`; }
+["keyup", "click", "select"].forEach(ev => ta.addEventListener(ev, updateCursor));
+$("tname").addEventListener("input", () => renderMeta());
+$("play").onclick = () => engine.toggle();
+$("loopBtn").onclick = () => { loopOn = !loopOn; $("loopBtn").setAttribute("aria-pressed", loopOn); };
+$("vol").oninput = e => engine.setVol(e.target.value / 100);
+$("saveBtn").onclick = saveCurrent;
+$("newBtn").onclick = () => newTrackDialog();
+$("openBtn").onclick = $("openBtn2").onclick = () => $("file").click();
+$("file").onchange = e => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) importFiles(fs); };
+$("search").oninput = renderList;
+$("dupBtn").onclick = async () => { if (cur) await createTrack(($("tname").value.trim() || cur.name) + " copy", ta.value); };
+$("dlBtn").onclick = () => { if (cur) offerFiles([{ name: slugify($("tname").value || cur.name) + ".py", text: ta.value }], slugify($("tname").value || cur.name) + ".zip"); };
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(ta.value); toast("Code copied"); }
+  catch { ta.focus(); ta.select(); toast("Press Ctrl+C to copy the selected code"); }
+};
+$("exportAll").onclick = () => { if (!store.tracks.length) return toast("The library is empty."); offerFiles(store.tracks.map(t => ({ name: slugify(t.name) + ".py", text: t.code })), "pybeat_library.zip"); };
+$("delBtn").onclick = async () => {
+  if (!cur) return;
+  const v = await modal(`<h3>Delete “${esc(cur.name)}”?</h3><p>This removes the track from your library. It can't be undone, so download the .py first if you might want it back.</p>
+    <div class="foot"><button class="btn ghost" data-v="" autofocus>Cancel</button><button class="btn primary" data-v="del" style="background:var(--err);color:#fff">Delete track</button></div>`);
+  if (v !== "del") return;
+  const id = cur.id;
+  try { await store.remove(id); } catch (e) { return toast(e.message); }
+  store.tracks = store.tracks.filter(t => t.id !== id);
+  engine.reset(); cur = null;
+  const next = [...store.tracks].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0];
+  if (next) openTrack(next.id, true); else { showWork(false); renderList(); }
+  toast("Track deleted");
+};
+document.addEventListener("keydown", e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); if (!$("scrim").hidden) return; saveCurrent(); }
+  else if (mod && e.key === "Enter") { e.preventDefault(); if (cur) engine.toggle(); }
+  else if (e.code === "Space" && e.target === document.body && cur) { e.preventDefault(); engine.toggle(); }
+});
+// drag & drop .py files anywhere
+let dz = null, dragDepth = 0;
+window.addEventListener("dragenter", e => { if (![...e.dataTransfer.types].includes("Files")) return; dragDepth++; if (!dz) { dz = document.createElement("div"); dz.className = "dropzone"; dz.style.position = "fixed"; dz.textContent = "Drop .py files to add them to your library"; document.body.appendChild(dz); } });
+window.addEventListener("dragleave", () => { if (--dragDepth <= 0 && dz) { dz.remove(); dz = null; dragDepth = 0; } });
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; if (dz) { dz.remove(); dz = null; } const fs = [...(e.dataTransfer?.files || [])]; if (fs.length) importFiles(fs); });
+window.addEventListener("beforeunload", e => { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+$("emptyTpls").innerHTML = tplCards("");
+$("emptyTpls").querySelectorAll(".tpl").forEach(b => b.onclick = () => newTrackDialog(b.dataset.t));
+setInterval(() => { if (cur) renderMeta(); }, 30000);
+
+/* ================= boot ================= */
+// first frame: the demo track in the editor while the library loads
+cur = null; $("tname").value = "Neon Drop"; ta.value = BASE; renderEditor(); { const p = locate(playSong, 0); if (p) applyPos(p, false); }
+let booted = false;
+store.init(() => {
+  const chip = $("storeChip");
+  if (store.mode === "db") { chip.className = "chip ok"; chip.textContent = store.readOnly ? "Library · view only" : "Library synced"; $("libStore").textContent = "saved to your account"; }
+  else { chip.className = "chip warn"; chip.textContent = "Saved in this browser"; $("libStore").textContent = "saved in this browser"; }
+  if (!booted && store.ready) {
+    booted = true;
+    let last = null; try { last = localStorage.getItem("pybeat.last"); } catch {}
+    const sorted = [...store.tracks].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+    const pick = store.tracks.find(t => t.id === last) || sorted[0];
+    if (pick) openTrack(pick.id, true); else { cur = null; showWork(false); }
+  } else if (cur) {
+    const t = store.tracks.find(x => x.id === cur.id);
+    if (!t) { /* deleted elsewhere */ }
+    else if (!isDirty() && (t.code !== cur.code || t.name !== cur.name)) { cur = { ...t }; $("tname").value = t.name; ta.value = t.code; renderEditor(); }
+    else { cur.updatedAt = t.updatedAt; }
+  }
+  renderList(); if (cur) renderMeta();
+});
+</script>
+
+</body>
+</html>
